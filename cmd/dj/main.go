@@ -59,6 +59,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tickMsg:
 
 		m.OnAir = !m.OnAir
+		m.CurrentLine++
+
+		if m.CurrentLine >= len(m.Song.Lyrics) {
+			m.CurrentLine = 0
+		}
 
 		return m, tick()
 

@@ -12,10 +12,11 @@ import (
 )
 
 type model struct {
-	Width  int
-	Height int
-	Song   music.Song
-	OnAir  bool
+	Width       int
+	Height      int
+	Song        music.Song
+	OnAir       bool
+	CurrentLine int
 }
 
 type tickMsg time.Time
@@ -68,13 +69,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m model) View() string {
 
-	return ui.Render(m.Song, m.Width, m.OnAir)
+	return ui.Render(m.Song, m.Width, m.OnAir, m.CurrentLine)
 }
 
 func main() {
 
 	p := tea.NewProgram(model{
-		Song: music.DemoSong,
+		Song:        music.DemoSong,
+		CurrentLine: 1,
 	})
 
 	if _, err := p.Run(); err != nil {

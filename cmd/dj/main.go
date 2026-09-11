@@ -5,6 +5,8 @@ import (
 	"os"
 
 	tea "github.com/charmbracelet/bubbletea"
+
+	"github.com/morsecodemedia/dj-morsecode/internal/ui"
 )
 
 type model struct{}
@@ -33,12 +35,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m model) View() string {
 
-	return `
- DJ MORSECODE
-
- Press q to quit.
-`
-
+	return ui.Render()
 }
 
 func main() {

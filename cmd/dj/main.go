@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 
@@ -14,10 +15,24 @@ type model struct {
 	Width  int
 	Height int
 	Song   music.Song
+	OnAir  bool
+}
+
+type tickMsg time.Time
+
+func tick() tea.Cmd {
+
+	return tea.Tick(
+		time.Second,
+		func(t time.Time) tea.Msg {
+			return tickMsg(t)
+		},
+	)
+
 }
 
 func (m model) Init() tea.Cmd {
-	return nil
+	return tick()
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -40,6 +55,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		return m, nil
 
+	case tickMsg:
+
+		m.OnAir = !m.OnAir
+
+		return m, tick()
+
 	}
 
 	return m, nil
@@ -47,7 +68,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m model) View() string {
 
-	return ui.Render(m.Song, m.Width)
+	return ui.Render(m.Song, m.Width, m.OnAir)
 }
 
 func main() {

@@ -9,4 +9,6 @@ type Model struct {
 
 	Width  int
 	Height int
+
+	OnAir bool
 }

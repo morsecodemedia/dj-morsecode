@@ -8,7 +8,7 @@ import (
 	"github.com/morsecodemedia/dj-morsecode/internal/music"
 )
 
-func Render(song music.Song, width int) string {
+func Render(song music.Song, width int, onAir bool) string {
 
 	if width == 0 {
 		width = 72
@@ -37,11 +37,14 @@ func Render(song music.Song, width int) string {
 
 	s.WriteString("\n\n")
 
-	s.WriteString(Section.Render("● ON AIR"))
+	status := "○ ON AIR"
+	if onAir {
+		status = "● ON AIR"
+	}
 
+	s.WriteString(Section.Render(status))
 	s.WriteString("\n\n")
 
-	// s.WriteString(Title.Render("♫ INTERSTATE LOVE SONG"))
 	s.WriteString(Title.Render("♫ " + song.Title))
 	s.WriteString("\n\n")
 

@@ -39,6 +39,8 @@ func ParseSong(lines []string) music.Song {
 		Title:  metadata["ti"],
 		Album:  metadata["al"],
 		Length: metadata["length"],
+
+		Lyrics: ParseLyrics(lines),
 	}
 
 }
@@ -70,6 +72,34 @@ func ParseMetadata(lines []string) map[string]string {
 	}
 
 	return metadata
+
+}
+
+func ParseLyrics(lines []string) []music.Lyric {
+
+	lyrics := []music.Lyric{}
+
+	for _, line := range lines {
+
+		if !IsLyric(line) {
+			continue
+		}
+
+		parts := strings.SplitN(line, "]", 2)
+
+		if len(parts) != 2 {
+			continue
+		}
+
+		text := strings.TrimSpace(parts[1])
+
+		lyrics = append(lyrics, music.Lyric{
+			Text: text,
+		})
+
+	}
+
+	return lyrics
 
 }
 

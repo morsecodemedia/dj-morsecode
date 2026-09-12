@@ -143,7 +143,22 @@ func main() {
 	}
 
 	song := lyrics.ParseSong(lines)
-	song.Lyrics = music.DemoSong.Lyrics
+	fmt.Println()
+
+	fmt.Println("Lyrics")
+
+	fmt.Println("------")
+
+	for i, lyric := range song.Lyrics {
+
+		fmt.Printf(
+			"%02d | %s\n",
+			i,
+			lyric.Text,
+		)
+
+	}
+
 	p := tea.NewProgram(model{
 		Song:        song,
 		CurrentLine: 1,

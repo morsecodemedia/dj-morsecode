@@ -142,6 +142,12 @@ func main() {
 
 	}
 
+	duration, err := lyrics.ParseTimestamp("00:35.18")
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(duration)
+
 	song := lyrics.ParseSong(lines)
 	fmt.Println()
 

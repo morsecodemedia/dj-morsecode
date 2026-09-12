@@ -1,9 +1,12 @@
 package lyrics
 
 import (
+	"fmt"
 	"os"
 	"regexp"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/morsecodemedia/dj-morsecode/internal/music"
 )
@@ -75,6 +78,47 @@ func ParseMetadata(lines []string) map[string]string {
 
 }
 
+func ParseTimestamp(value string) (time.Duration, error) {
+
+	parts := strings.Split(value, ":")
+
+	if len(parts) != 2 {
+		return 0, fmt.Errorf("invalid timestamp: %s", value)
+	}
+
+	minutePart := parts[0]
+	secondPart := parts[1]
+
+	secondParts := strings.Split(secondPart, ".")
+
+	minutes, err := strconv.Atoi(minutePart)
+	if err != nil {
+		return 0, err
+	}
+
+	seconds, err := strconv.Atoi(secondParts[0])
+	if err != nil {
+		return 0, err
+	}
+
+	hundredths, err := strconv.Atoi(secondParts[1])
+	if err != nil {
+		return 0, err
+	}
+
+	if len(secondParts) != 2 {
+		return 0, fmt.Errorf("invalid timestamp: %s", value)
+	}
+
+	duration :=
+		time.Duration(minutes)*time.Minute +
+			time.Duration(seconds)*time.Second +
+			time.Duration(hundredths)*10*time.Millisecond
+
+	return duration, nil
+
+}
+
 func ParseLyrics(lines []string) []music.Lyric {
 
 	lyrics := []music.Lyric{}
@@ -87,14 +131,23 @@ func ParseLyrics(lines []string) []music.Lyric {
 
 		parts := strings.SplitN(line, "]", 2)
 
+		timestamp := strings.TrimPrefix(parts[0], "[")
+
+		lyricText := strings.TrimSpace(parts[1])
+
+		duration, err := ParseTimestamp(timestamp)
+
 		if len(parts) != 2 {
 			continue
 		}
 
-		text := strings.TrimSpace(parts[1])
+		if err != nil {
+			continue
+		}
 
 		lyrics = append(lyrics, music.Lyric{
-			Text: text,
+			Time: duration,
+			Text: lyricText,
 		})
 
 	}

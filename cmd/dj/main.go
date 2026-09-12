@@ -7,6 +7,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
+	"github.com/morsecodemedia/dj-morsecode/internal/lyrics"
 	"github.com/morsecodemedia/dj-morsecode/internal/music"
 	"github.com/morsecodemedia/dj-morsecode/internal/ui"
 )
@@ -78,6 +79,50 @@ func (m model) View() string {
 }
 
 func main() {
+	lines, err := lyrics.Load("assets/interstate-love-song.lrc")
+
+	if err != nil {
+
+		fmt.Println(err)
+
+		os.Exit(1)
+
+	}
+
+	fmt.Printf(
+		"Loaded %d lines\n",
+		len(lines),
+	)
+
+	fmt.Println()
+
+	for i, line := range lines {
+
+		switch {
+
+		case lyrics.IsMetadata(line):
+
+			fmt.Printf("%02d | META  | %s\n", i, line)
+
+		case lyrics.IsLyric(line):
+
+			fmt.Printf("%02d | LYRIC | %s\n", i, line)
+
+		case lyrics.IsLyricBreak(line):
+
+			fmt.Printf("%02d | BREAK | %s\n", i, line)
+
+		case lyrics.IsBlank(line):
+
+			fmt.Printf("%02d | BLANK | %s\n", i, line)
+
+		default:
+
+			fmt.Printf("%02d | UNKNOWN | %s\n", i, line)
+
+		}
+
+	}
 
 	p := tea.NewProgram(model{
 		Song:        music.DemoSong,

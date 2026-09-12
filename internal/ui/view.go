@@ -62,7 +62,41 @@ func Render(song music.Song, width int, onAir bool, currentLine int) string {
 
 	s.WriteString("\n\n")
 
-	for i, lyric := range song.Lyrics {
+	start := currentLine - 2
+
+	if start < 0 {
+		start = 0
+	}
+
+	end := currentLine + 3
+
+	if end > len(song.Lyrics) {
+		end = len(song.Lyrics)
+	}
+
+	topPadding := 0
+
+	if currentLine < 2 {
+		topPadding = 2 - currentLine
+	}
+
+	bottomPadding := 0
+
+	remaining := len(song.Lyrics) - currentLine - 1
+
+	if remaining < 2 {
+		bottomPadding = 2 - remaining
+	}
+
+	for i := 0; i < topPadding; i++ {
+
+		s.WriteString("\n\n")
+
+	}
+
+	for i := start; i < end; i++ {
+
+		lyric := song.Lyrics[i]
 
 		if i == currentLine {
 
@@ -81,6 +115,12 @@ func Render(song music.Song, width int, onAir bool, currentLine int) string {
 			)
 
 		}
+
+		s.WriteString("\n\n")
+
+	}
+
+	for i := 0; i < bottomPadding; i++ {
 
 		s.WriteString("\n\n")
 

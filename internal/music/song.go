@@ -12,6 +12,7 @@ type Song struct {
 	Artist string
 	Album  string
 	Year   int
+	Length string
 
 	Lyrics []Lyric
 }
@@ -21,6 +22,7 @@ var DemoSong = Song{
 	Artist: "Stone Temple Pilots",
 	Album:  "Purple",
 	Year:   1994,
+	Length: "3:16",
 
 	Lyrics: []Lyric{
 		{Text: "Waitin' on a Sunday afternoon"},

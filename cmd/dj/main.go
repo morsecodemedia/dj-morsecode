@@ -81,6 +81,24 @@ func (m model) View() string {
 func main() {
 	lines, err := lyrics.Load("assets/interstate-love-song.lrc")
 
+	metadata := lyrics.ParseMetadata(lines)
+
+	fmt.Println()
+
+	fmt.Println("Metadata")
+
+	fmt.Println("--------")
+
+	for key, value := range metadata {
+
+		fmt.Printf(
+			"%s = %s\n",
+			key,
+			value,
+		)
+
+	}
+
 	if err != nil {
 
 		fmt.Println(err)
@@ -124,8 +142,10 @@ func main() {
 
 	}
 
+	song := lyrics.ParseSong(lines)
+	song.Lyrics = music.DemoSong.Lyrics
 	p := tea.NewProgram(model{
-		Song:        music.DemoSong,
+		Song:        song,
 		CurrentLine: 1,
 	})
 

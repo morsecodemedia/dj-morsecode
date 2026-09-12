@@ -51,10 +51,14 @@ func Render(song music.Song, width int, onAir bool, currentLine int) string {
 	s.WriteString(Artist.Render(song.Artist))
 	s.WriteString("\n\n")
 
+	albumLine := song.Album
+
+	if song.Year != 0 {
+		albumLine += fmt.Sprintf(" • %d", song.Year)
+	}
+
 	s.WriteString(
-		Album.Render(
-			fmt.Sprintf("%s • %d", song.Album, song.Year),
-		),
+		Album.Render(albumLine),
 	)
 	s.WriteString("\n\n")
 

@@ -4,6 +4,8 @@ import (
 	"os"
 	"regexp"
 	"strings"
+
+	"github.com/morsecodemedia/dj-morsecode/internal/music"
 )
 
 var (
@@ -26,6 +28,49 @@ func IsLyricBreak(line string) bool {
 
 func IsBlank(line string) bool {
 	return strings.TrimSpace(line) == ""
+}
+
+func ParseSong(lines []string) music.Song {
+
+	metadata := ParseMetadata(lines)
+
+	return music.Song{
+		Artist: metadata["ar"],
+		Title:  metadata["ti"],
+		Album:  metadata["al"],
+		Length: metadata["length"],
+	}
+
+}
+
+func ParseMetadata(lines []string) map[string]string {
+
+	metadata := make(map[string]string)
+
+	for _, line := range lines {
+
+		if !IsMetadata(line) {
+			continue
+		}
+
+		line = strings.TrimPrefix(line, "[")
+		line = strings.TrimSuffix(line, "]")
+
+		parts := strings.SplitN(line, ":", 2)
+
+		if len(parts) != 2 {
+			continue
+		}
+
+		key := parts[0]
+		value := parts[1]
+
+		metadata[key] = value
+
+	}
+
+	return metadata
+
 }
 
 func Load(path string) ([]string, error) {

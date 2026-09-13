@@ -16,11 +16,11 @@ type Cue struct {
 }
 
 type Song struct {
-	Title  string
-	Artist string
-	Album  string
-	Year   int
-	Length string
+	Title    string
+	Artist   string
+	Album    string
+	Year     int
+	Duration time.Duration
 
 	Timeline []Cue
 }

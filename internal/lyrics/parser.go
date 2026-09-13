@@ -12,10 +12,10 @@ import (
 )
 
 type Metadata struct {
-	Title  string
-	Artist string
-	Album  string
-	Length string
+	Title    string
+	Artist   string
+	Album    string
+	Duration time.Duration
 }
 
 var (
@@ -72,11 +72,17 @@ func ParseMetadata(lines []string) Metadata {
 		values[parts[0]] = parts[1]
 	}
 
+	duration, err := ParseDuration(values["length"])
+
+	if err != nil {
+		duration = 0
+	}
+
 	return Metadata{
-		Artist: values["ar"],
-		Title:  values["ti"],
-		Album:  values["al"],
-		Length: values["length"],
+		Artist:   values["ar"],
+		Title:    values["ti"],
+		Album:    values["al"],
+		Duration: duration,
 	}
 }
 
@@ -165,4 +171,30 @@ func ParseTimestamp(value string) (time.Duration, error) {
 			time.Duration(hundredths)*10*time.Millisecond
 
 	return duration, nil
+}
+
+func ParseDuration(value string) (time.Duration, error) {
+
+	parts := strings.Split(value, ":")
+
+	if len(parts) != 2 {
+		return 0, fmt.Errorf("invalid duration: %s", value)
+	}
+
+	minutes, err := strconv.Atoi(parts[0])
+	if err != nil {
+		return 0, err
+	}
+
+	seconds, err := strconv.Atoi(parts[1])
+	if err != nil {
+		return 0, err
+	}
+
+	duration :=
+		time.Duration(minutes)*time.Minute +
+			time.Duration(seconds)*time.Second
+
+	return duration, nil
+
 }

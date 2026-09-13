@@ -109,7 +109,7 @@ func main() {
 		Title:    metadata.Title,
 		Artist:   metadata.Artist,
 		Album:    metadata.Album,
-		Length:   metadata.Length,
+		Duration: metadata.Duration,
 		Timeline: timeline,
 	}
 

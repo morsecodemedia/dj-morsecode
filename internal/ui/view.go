@@ -136,10 +136,24 @@ func Render(
 	transport :=
 		player.FormatDuration(elapsed) +
 			" / " +
-			song.Length
+			player.FormatDuration(song.Duration)
+
+	progress := player.Progress(
+		elapsed.Seconds(),
+		song.Duration.Seconds(),
+	)
+
+	bar := player.ProgressBar(
+		24,
+		progress,
+	)
 
 	s.WriteString(
 		Artist.Render("▶ " + transport),
+	)
+	s.WriteString("\n")
+	s.WriteString(
+		Album.Render(bar),
 	)
 
 	s.WriteString("\n\n")

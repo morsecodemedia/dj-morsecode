@@ -160,8 +160,10 @@ func Render(
 
 				case preRoll:
 
-					s.WriteString(Cue.Render(cueMarker(cue, preRoll)))
-					s.WriteString("\n")
+					CurrentLyric.Render(
+						cueMarker(cue, true) + " " + cue.Text,
+					)
+					continue
 
 				case cue.Type == music.CueLyric:
 
@@ -189,7 +191,7 @@ func Render(
 				prefix := "  "
 
 				if i > 0 {
-					prefix = upcomingMarker() + " "
+					prefix = " " + upcomingMarker() + " "
 				}
 
 				s.WriteString(

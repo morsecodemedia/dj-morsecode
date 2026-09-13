@@ -9,6 +9,7 @@ import (
 
 	"github.com/morsecodemedia/dj-morsecode/internal/lyrics"
 	"github.com/morsecodemedia/dj-morsecode/internal/music"
+	"github.com/morsecodemedia/dj-morsecode/internal/player"
 	"github.com/morsecodemedia/dj-morsecode/internal/ui"
 )
 
@@ -18,7 +19,7 @@ type model struct {
 	Song       music.Song
 	OnAir      bool
 	CurrentCue int
-	Elapsed    time.Duration
+	Player     *player.Player
 }
 
 type tickMsg time.Time
@@ -63,11 +64,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tickMsg:
 
 		m.OnAir = !m.OnAir
-		m.Elapsed += TickRate
+		elapsed := m.Player.Elapsed()
 
 		for i := len(m.Song.Timeline) - 1; i >= 0; i-- {
 
-			if m.Elapsed >= m.Song.Timeline[i].Time {
+			if elapsed >= m.Song.Timeline[i].Time {
 
 				m.CurrentCue = i
 
@@ -91,7 +92,7 @@ func (m model) View() string {
 		m.Width,
 		m.OnAir,
 		m.CurrentCue,
-		m.Elapsed,
+		m.Player.Elapsed(),
 	)
 
 }
@@ -119,7 +120,8 @@ func main() {
 	}
 
 	p := tea.NewProgram(model{
-		Song: song,
+		Song:   song,
+		Player: player.New(),
 	})
 
 	if _, err := p.Run(); err != nil {

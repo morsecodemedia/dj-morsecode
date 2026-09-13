@@ -63,20 +63,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case tickMsg:
 
-		m.OnAir = !m.OnAir
 		elapsed := m.Player.Elapsed()
 
-		for i := len(m.Song.Timeline) - 1; i >= 0; i-- {
+		m.CurrentCue = player.CurrentCue(
+			m.Song.Timeline,
+			elapsed,
+		)
 
-			if elapsed >= m.Song.Timeline[i].Time {
-
-				m.CurrentCue = i
-
-				break
-
-			}
-
-		}
+		m.OnAir = !m.OnAir
 
 		return m, tick()
 

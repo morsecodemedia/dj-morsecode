@@ -39,7 +39,7 @@ func BuildViewport(
 
 		viewport = append(viewport, cue)
 
-		if len(viewport) == 4 {
+		if len(viewport) == 3 {
 			break
 		}
 
@@ -135,14 +135,14 @@ func Render(
 				case preRoll:
 
 					s.WriteString(Cue.Render("▶"))
-					s.WriteString("\n\n")
+					s.WriteString("\n")
 
 				case cue.Type == music.CueLyric:
 
 					s.WriteString(
 						CurrentLyric.Render("♫ " + cue.Text),
 					)
-					s.WriteString("\n\n")
+					s.WriteString("\n")
 					continue
 
 				case cue.Type == music.CueBreak:
@@ -150,7 +150,7 @@ func Render(
 					s.WriteString(
 						Cue.Render("●"),
 					)
-					s.WriteString("\n\n")
+					s.WriteString("\n")
 					continue
 
 				}
@@ -161,7 +161,7 @@ func Render(
 			case music.CueLyric:
 
 				s.WriteString(
-					Lyric.Render("      " + cue.Text),
+					Lyric.Render("  " + cue.Text),
 				)
 
 			case music.CueBreak:
@@ -170,13 +170,13 @@ func Render(
 
 			}
 
-			s.WriteString("\n\n")
+			s.WriteString("\n")
 
 		}
 
 	}
 
-	s.WriteString("\n\n")
+	s.WriteString("\n")
 	s.WriteString(Divider(width))
 	s.WriteString("\n\n")
 

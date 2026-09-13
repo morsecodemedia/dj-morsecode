@@ -8,6 +8,47 @@ import (
 	"github.com/morsecodemedia/dj-morsecode/internal/music"
 )
 
+// BuildViewport converts the complete song timeline into the
+// subset of cues currently visible in the timeline panel.
+//
+// The renderer should never access Song.Timeline directly.
+// From this point forward, it renders only what the viewport
+// chooses to expose.
+func BuildViewport(
+	timeline []music.Cue,
+	current int,
+) []music.Cue {
+
+	if len(timeline) == 0 {
+		return nil
+	}
+
+	var viewport []music.Cue
+
+	currentCue := timeline[current]
+
+	viewport = append(viewport, currentCue)
+
+	for i := current + 1; i < len(timeline); i++ {
+
+		cue := timeline[i]
+
+		if cue.Type == music.CueBreak {
+			continue
+		}
+
+		viewport = append(viewport, cue)
+
+		if len(viewport) == 4 {
+			break
+		}
+
+	}
+
+	return viewport
+
+}
+
 func Render(
 	song music.Song,
 	width int,
@@ -74,64 +115,44 @@ func Render(
 
 	} else {
 
-		preRoll := elapsed < song.Timeline[0].Time
+		viewport := BuildViewport(
+			song.Timeline,
+			currentCue,
+		)
 
-		start := currentCue - 2
-		if start < 0 {
-			start = 0
+		preRoll := false
+
+		if len(viewport) > 0 {
+			preRoll = elapsed < viewport[0].Time
 		}
 
-		end := currentCue + 3
-		if end > len(song.Timeline) {
-			end = len(song.Timeline)
-		}
+		for i, cue := range viewport {
 
-		topPadding := 0
-		if currentCue < 2 {
-			topPadding = 2 - currentCue
-		}
+			if i == 0 {
 
-		bottomPadding := 0
-		remaining := len(song.Timeline) - currentCue - 1
-		if remaining < 2 {
-			bottomPadding = 2 - remaining
-		}
+				switch {
 
-		for i := 0; i < topPadding; i++ {
-			s.WriteString("\n\n")
-		}
-
-		for i := start; i < end; i++ {
-
-			cue := song.Timeline[i]
-
-			if i == currentCue {
-
-				if preRoll {
+				case preRoll:
 
 					s.WriteString(Cue.Render("▶"))
 					s.WriteString("\n\n")
 
-				} else {
+				case cue.Type == music.CueLyric:
 
-					switch cue.Type {
-
-					case music.CueLyric:
-
-						s.WriteString(
-							CurrentLyric.Render("♫ " + cue.Text),
-						)
-
-					case music.CueBreak:
-
-						s.WriteString(
-							Cue.Render("●"),
-						)
-
-					}
-
+					s.WriteString(
+						CurrentLyric.Render("♫ " + cue.Text),
+					)
 					s.WriteString("\n\n")
 					continue
+
+				case cue.Type == music.CueBreak:
+
+					s.WriteString(
+						Cue.Render("●"),
+					)
+					s.WriteString("\n\n")
+					continue
+
 				}
 			}
 
@@ -153,9 +174,6 @@ func Render(
 
 		}
 
-		for i := 0; i < bottomPadding; i++ {
-			s.WriteString("\n\n")
-		}
 	}
 
 	s.WriteString("\n\n")

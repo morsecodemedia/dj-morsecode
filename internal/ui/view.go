@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/morsecodemedia/dj-morsecode/internal/music"
+	"github.com/morsecodemedia/dj-morsecode/internal/player"
 )
 
 // BuildViewport converts the complete song timeline into the
@@ -130,6 +131,17 @@ func Render(
 	}
 
 	s.WriteString(Album.Render(albumLine))
+	s.WriteString("\n")
+
+	transport :=
+		player.FormatDuration(elapsed) +
+			" / " +
+			song.Length
+
+	s.WriteString(
+		Artist.Render("▶ " + transport),
+	)
+
 	s.WriteString("\n\n")
 
 	s.WriteString(Divider(width))

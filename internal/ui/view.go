@@ -2,13 +2,19 @@ package ui
 
 import (
 	"fmt"
-
 	"strings"
+	"time"
 
 	"github.com/morsecodemedia/dj-morsecode/internal/music"
 )
 
-func Render(song music.Song, width int, onAir bool, currentLine int) string {
+func Render(
+	song music.Song,
+	width int,
+	onAir bool,
+	currentCue int,
+	elapsed time.Duration,
+) string {
 
 	if width == 0 {
 		width = 72
@@ -34,7 +40,6 @@ func Render(song music.Song, width int, onAir bool, currentLine int) string {
 	s.WriteString("\n\n")
 
 	s.WriteString(Divider(width))
-
 	s.WriteString("\n\n")
 
 	status := "○ ON AIR"
@@ -57,83 +62,104 @@ func Render(song music.Song, width int, onAir bool, currentLine int) string {
 		albumLine += fmt.Sprintf(" • %d", song.Year)
 	}
 
-	s.WriteString(
-		Album.Render(albumLine),
-	)
+	s.WriteString(Album.Render(albumLine))
 	s.WriteString("\n\n")
 
 	s.WriteString(Divider(width))
-
 	s.WriteString("\n\n")
 
-	start := currentLine - 2
+	if len(song.Timeline) == 0 {
 
-	if start < 0 {
-		start = 0
-	}
+		s.WriteString(Lyric.Render("No timeline loaded."))
 
-	end := currentLine + 3
+	} else {
 
-	if end > len(song.Lyrics) {
-		end = len(song.Lyrics)
-	}
+		preRoll := elapsed < song.Timeline[0].Time
 
-	topPadding := 0
+		start := currentCue - 2
+		if start < 0 {
+			start = 0
+		}
 
-	if currentLine < 2 {
-		topPadding = 2 - currentLine
-	}
+		end := currentCue + 3
+		if end > len(song.Timeline) {
+			end = len(song.Timeline)
+		}
 
-	bottomPadding := 0
+		topPadding := 0
+		if currentCue < 2 {
+			topPadding = 2 - currentCue
+		}
 
-	remaining := len(song.Lyrics) - currentLine - 1
+		bottomPadding := 0
+		remaining := len(song.Timeline) - currentCue - 1
+		if remaining < 2 {
+			bottomPadding = 2 - remaining
+		}
 
-	if remaining < 2 {
-		bottomPadding = 2 - remaining
-	}
+		for i := 0; i < topPadding; i++ {
+			s.WriteString("\n\n")
+		}
 
-	for i := 0; i < topPadding; i++ {
+		for i := start; i < end; i++ {
 
-		s.WriteString("\n\n")
+			cue := song.Timeline[i]
 
-	}
+			if i == currentCue {
 
-	for i := start; i < end; i++ {
+				if preRoll {
 
-		lyric := song.Lyrics[i]
+					s.WriteString(Cue.Render("▶"))
+					s.WriteString("\n\n")
 
-		if i == currentLine {
+				} else {
 
-			s.WriteString(
-				CurrentLyric.Render(
-					"▶ " + lyric.Text,
-				),
-			)
+					switch cue.Type {
 
-		} else {
+					case music.CueLyric:
 
-			s.WriteString(
-				Lyric.Render(
-					"      " + lyric.Text,
-				),
-			)
+						s.WriteString(
+							CurrentLyric.Render("♫ " + cue.Text),
+						)
+
+					case music.CueBreak:
+
+						s.WriteString(
+							Cue.Render("●"),
+						)
+
+					}
+
+					s.WriteString("\n\n")
+					continue
+				}
+			}
+
+			switch cue.Type {
+
+			case music.CueLyric:
+
+				s.WriteString(
+					Lyric.Render("      " + cue.Text),
+				)
+
+			case music.CueBreak:
+
+				s.WriteString("")
+
+			}
+
+			s.WriteString("\n\n")
 
 		}
 
-		s.WriteString("\n\n")
-
-	}
-
-	for i := 0; i < bottomPadding; i++ {
-
-		s.WriteString("\n\n")
-
+		for i := 0; i < bottomPadding; i++ {
+			s.WriteString("\n\n")
+		}
 	}
 
 	s.WriteString("\n\n")
-
 	s.WriteString(Divider(width))
-
 	s.WriteString("\n\n")
 
 	s.WriteString(Center(
@@ -142,5 +168,4 @@ func Render(song music.Song, width int, onAir bool, currentLine int) string {
 	))
 
 	return s.String()
-
 }

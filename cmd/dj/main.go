@@ -13,19 +13,22 @@ import (
 )
 
 type model struct {
-	Width       int
-	Height      int
-	Song        music.Song
-	OnAir       bool
-	CurrentLine int
+	Width      int
+	Height     int
+	Song       music.Song
+	OnAir      bool
+	CurrentCue int
+	Elapsed    time.Duration
 }
 
 type tickMsg time.Time
 
+const TickRate = time.Second
+
 func tick() tea.Cmd {
 
 	return tea.Tick(
-		time.Second,
+		TickRate,
 		func(t time.Time) tea.Msg {
 			return tickMsg(t)
 		},
@@ -60,10 +63,18 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tickMsg:
 
 		m.OnAir = !m.OnAir
-		m.CurrentLine++
+		m.Elapsed += TickRate
 
-		if m.CurrentLine >= len(m.Song.Lyrics) {
-			m.CurrentLine = 0
+		for i := len(m.Song.Timeline) - 1; i >= 0; i-- {
+
+			if m.Elapsed >= m.Song.Timeline[i].Time {
+
+				m.CurrentCue = i
+
+				break
+
+			}
+
 		}
 
 		return m, tick()
@@ -75,105 +86,45 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m model) View() string {
 
-	return ui.Render(m.Song, m.Width, m.OnAir, m.CurrentLine)
+	return ui.Render(
+		m.Song,
+		m.Width,
+		m.OnAir,
+		m.CurrentCue,
+		m.Elapsed,
+	)
+
 }
 
 func main() {
+
 	lines, err := lyrics.Load("assets/interstate-love-song.lrc")
-
-	metadata := lyrics.ParseMetadata(lines)
-
-	fmt.Println()
-
-	fmt.Println("Metadata")
-
-	fmt.Println("--------")
-
-	for key, value := range metadata {
-
-		fmt.Printf(
-			"%s = %s\n",
-			key,
-			value,
-		)
-
-	}
-
 	if err != nil {
 
 		fmt.Println(err)
-
 		os.Exit(1)
 
 	}
 
-	fmt.Printf(
-		"Loaded %d lines\n",
-		len(lines),
-	)
+	metadata := lyrics.ParseMetadata(lines)
 
-	fmt.Println()
+	timeline := lyrics.ParseTimeline(lines)
 
-	for i, line := range lines {
-
-		switch {
-
-		case lyrics.IsMetadata(line):
-
-			fmt.Printf("%02d | META  | %s\n", i, line)
-
-		case lyrics.IsLyric(line):
-
-			fmt.Printf("%02d | LYRIC | %s\n", i, line)
-
-		case lyrics.IsLyricBreak(line):
-
-			fmt.Printf("%02d | BREAK | %s\n", i, line)
-
-		case lyrics.IsBlank(line):
-
-			fmt.Printf("%02d | BLANK | %s\n", i, line)
-
-		default:
-
-			fmt.Printf("%02d | UNKNOWN | %s\n", i, line)
-
-		}
-
-	}
-
-	duration, err := lyrics.ParseTimestamp("00:35.18")
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println(duration)
-
-	song := lyrics.ParseSong(lines)
-	fmt.Println()
-
-	fmt.Println("Lyrics")
-
-	fmt.Println("------")
-
-	for i, lyric := range song.Lyrics {
-
-		fmt.Printf(
-			"%02d | %s\n",
-			i,
-			lyric.Text,
-		)
-
+	song := music.Song{
+		Title:    metadata.Title,
+		Artist:   metadata.Artist,
+		Album:    metadata.Album,
+		Length:   metadata.Length,
+		Timeline: timeline,
 	}
 
 	p := tea.NewProgram(model{
-		Song:        song,
-		CurrentLine: 1,
+		Song: song,
 	})
 
 	if _, err := p.Run(); err != nil {
 
 		fmt.Println(err)
-
 		os.Exit(1)
 
 	}

@@ -38,6 +38,10 @@ var (
 			Bold(true).
 			Foreground(lipgloss.Color("229"))
 
+	Cue = lipgloss.NewStyle().
+		Bold(true).
+		Foreground(lipgloss.Color("229"))
+
 	Footer = lipgloss.NewStyle().
 		Foreground(lipgloss.Color("240"))
 )

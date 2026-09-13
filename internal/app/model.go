@@ -5,7 +5,7 @@ import "github.com/morsecodemedia/dj-morsecode/internal/music"
 type Model struct {
 	Song music.Song
 
-	CurrentLine int
+	CurrentCue int
 
 	Width  int
 	Height int

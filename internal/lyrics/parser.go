@@ -11,11 +11,28 @@ import (
 	"github.com/morsecodemedia/dj-morsecode/internal/music"
 )
 
+type Metadata struct {
+	Title  string
+	Artist string
+	Album  string
+	Length string
+}
+
 var (
 	metadataPattern  = regexp.MustCompile(`^\[[a-zA-Z]+:.*\]$`)
 	lyricPattern     = regexp.MustCompile(`^\[\d{2}:\d{2}\.\d{2}\]\s*.+`)
-	timestampPattern = regexp.MustCompile(`^\[\d{2}:\d{2}(?::\d{2}|\.\d{2})\]$`)
+	timestampPattern = regexp.MustCompile(`^\[\d{2}:\d{2}\.\d{2}\]$`)
 )
+
+func Load(path string) ([]string, error) {
+
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+
+	return strings.Split(string(data), "\n"), nil
+}
 
 func IsMetadata(line string) bool {
 	return metadataPattern.MatchString(line)
@@ -33,24 +50,9 @@ func IsBlank(line string) bool {
 	return strings.TrimSpace(line) == ""
 }
 
-func ParseSong(lines []string) music.Song {
+func ParseMetadata(lines []string) Metadata {
 
-	metadata := ParseMetadata(lines)
-
-	return music.Song{
-		Artist: metadata["ar"],
-		Title:  metadata["ti"],
-		Album:  metadata["al"],
-		Length: metadata["length"],
-
-		Lyrics: ParseLyrics(lines),
-	}
-
-}
-
-func ParseMetadata(lines []string) map[string]string {
-
-	metadata := make(map[string]string)
+	values := make(map[string]string)
 
 	for _, line := range lines {
 
@@ -67,15 +69,65 @@ func ParseMetadata(lines []string) map[string]string {
 			continue
 		}
 
-		key := parts[0]
-		value := parts[1]
-
-		metadata[key] = value
-
+		values[parts[0]] = parts[1]
 	}
 
-	return metadata
+	return Metadata{
+		Artist: values["ar"],
+		Title:  values["ti"],
+		Album:  values["al"],
+		Length: values["length"],
+	}
+}
 
+func ParseTimeline(lines []string) []music.Cue {
+
+	var timeline []music.Cue
+
+	for _, line := range lines {
+
+		switch {
+
+		case IsLyric(line):
+
+			parts := strings.SplitN(line, "]", 2)
+
+			if len(parts) != 2 {
+				continue
+			}
+
+			duration, err := ParseTimestamp(
+				strings.TrimPrefix(parts[0], "["),
+			)
+
+			if err != nil {
+				continue
+			}
+
+			timeline = append(timeline, music.Cue{
+				Time: duration,
+				Type: music.CueLyric,
+				Text: strings.TrimSpace(parts[1]),
+			})
+
+		case IsLyricBreak(line):
+
+			duration, err := ParseTimestamp(
+				strings.Trim(line, "[]"),
+			)
+
+			if err != nil {
+				continue
+			}
+
+			timeline = append(timeline, music.Cue{
+				Time: duration,
+				Type: music.CueBreak,
+			})
+		}
+	}
+
+	return timeline
 }
 
 func ParseTimestamp(value string) (time.Duration, error) {
@@ -86,12 +138,13 @@ func ParseTimestamp(value string) (time.Duration, error) {
 		return 0, fmt.Errorf("invalid timestamp: %s", value)
 	}
 
-	minutePart := parts[0]
-	secondPart := parts[1]
+	secondParts := strings.Split(parts[1], ".")
 
-	secondParts := strings.Split(secondPart, ".")
+	if len(secondParts) != 2 {
+		return 0, fmt.Errorf("invalid timestamp: %s", value)
+	}
 
-	minutes, err := strconv.Atoi(minutePart)
+	minutes, err := strconv.Atoi(parts[0])
 	if err != nil {
 		return 0, err
 	}
@@ -106,64 +159,10 @@ func ParseTimestamp(value string) (time.Duration, error) {
 		return 0, err
 	}
 
-	if len(secondParts) != 2 {
-		return 0, fmt.Errorf("invalid timestamp: %s", value)
-	}
-
 	duration :=
 		time.Duration(minutes)*time.Minute +
 			time.Duration(seconds)*time.Second +
 			time.Duration(hundredths)*10*time.Millisecond
 
 	return duration, nil
-
-}
-
-func ParseLyrics(lines []string) []music.Lyric {
-
-	lyrics := []music.Lyric{}
-
-	for _, line := range lines {
-
-		if !IsLyric(line) {
-			continue
-		}
-
-		parts := strings.SplitN(line, "]", 2)
-
-		timestamp := strings.TrimPrefix(parts[0], "[")
-
-		lyricText := strings.TrimSpace(parts[1])
-
-		duration, err := ParseTimestamp(timestamp)
-
-		if len(parts) != 2 {
-			continue
-		}
-
-		if err != nil {
-			continue
-		}
-
-		lyrics = append(lyrics, music.Lyric{
-			Time: duration,
-			Text: lyricText,
-		})
-
-	}
-
-	return lyrics
-
-}
-
-func Load(path string) ([]string, error) {
-
-	data, err := os.ReadFile(path)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return strings.Split(string(data), "\n"), nil
-
 }

@@ -2,8 +2,16 @@ package music
 
 import "time"
 
-type Lyric struct {
+type CueType int
+
+const (
+	CueLyric CueType = iota
+	CueBreak
+)
+
+type Cue struct {
 	Time time.Duration
+	Type CueType
 	Text string
 }
 
@@ -14,5 +22,5 @@ type Song struct {
 	Year   int
 	Length string
 
-	Lyrics []Lyric
+	Timeline []Cue
 }

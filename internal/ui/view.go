@@ -49,6 +49,28 @@ func BuildViewport(
 
 }
 
+func cueMarker(
+	cue music.Cue,
+	preRoll bool,
+) string {
+
+	if preRoll {
+		return "▶"
+	}
+
+	switch cue.Type {
+
+	case music.CueLyric:
+		return "♫"
+
+	case music.CueBreak:
+		return "●"
+
+	default:
+		return "?"
+	}
+}
+
 func Render(
 	song music.Song,
 	width int,
@@ -134,13 +156,13 @@ func Render(
 
 				case preRoll:
 
-					s.WriteString(Cue.Render("▶"))
+					s.WriteString(Cue.Render(cueMarker(cue, preRoll)))
 					s.WriteString("\n")
 
 				case cue.Type == music.CueLyric:
 
 					s.WriteString(
-						CurrentLyric.Render("♫ " + cue.Text),
+						CurrentLyric.Render(cueMarker(cue, preRoll) + " " + cue.Text),
 					)
 					s.WriteString("\n")
 					continue
@@ -148,7 +170,7 @@ func Render(
 				case cue.Type == music.CueBreak:
 
 					s.WriteString(
-						Cue.Render("●"),
+						Cue.Render(cueMarker(cue, preRoll)),
 					)
 					s.WriteString("\n")
 					continue

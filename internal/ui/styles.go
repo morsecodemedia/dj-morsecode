@@ -38,6 +38,9 @@ var (
 			Bold(true).
 			Foreground(lipgloss.Color("229"))
 
+	UpcomingLyric = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("242"))
+
 	Cue = lipgloss.NewStyle().
 		Bold(true).
 		Foreground(lipgloss.Color("229"))

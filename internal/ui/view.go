@@ -71,6 +71,10 @@ func cueMarker(
 	}
 }
 
+func upcomingMarker() string {
+	return "·"
+}
+
 func Render(
 	song music.Song,
 	width int,
@@ -182,8 +186,14 @@ func Render(
 
 			case music.CueLyric:
 
+				prefix := "  "
+
+				if i > 0 {
+					prefix = upcomingMarker() + " "
+				}
+
 				s.WriteString(
-					Lyric.Render("  " + cue.Text),
+					Lyric.Render(prefix + cue.Text),
 				)
 
 			case music.CueBreak:

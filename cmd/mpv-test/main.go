@@ -13,12 +13,14 @@ func main() {
 		panic(err)
 	}
 
-	title, err := client.MediaTitle()
-	if err != nil {
-		panic(err)
-	}
+	title, _ := client.MediaTitle()
 
-	fmt.Println("Connected!")
+	playback, _ := client.PlaybackTime()
+
+	duration, _ := client.Duration()
+
 	fmt.Println(title)
+	fmt.Println(playback)
+	fmt.Println(duration)
 
 }

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
+	"time"
 )
 
 type Client struct {
@@ -14,6 +15,11 @@ type Client struct {
 type response struct {
 	Data  string `json:"data"`
 	Error string `json:"error"`
+}
+
+type floatResponse struct {
+	Data  float64 `json:"data"`
+	Error string  `json:"error"`
 }
 
 func Connect(socket string) (*Client, error) {
@@ -61,7 +67,7 @@ func (c *Client) command(property string) ([]byte, error) {
 func (c *Client) stringProperty(
 	property string,
 ) (string, error) {
-	data, err := c.command("media-title")
+	data, err := c.command(property)
 	if err != nil {
 		return "", err
 	}
@@ -76,6 +82,26 @@ func (c *Client) stringProperty(
 	return response.Data, nil
 }
 
+func (c *Client) floatProperty(
+	property string,
+) (float64, error) {
+
+	data, err := c.command(property)
+	if err != nil {
+		return 0, err
+	}
+
+	var response floatResponse
+
+	err = json.Unmarshal(data, &response)
+	if err != nil {
+		return 0, err
+	}
+
+	return response.Data, nil
+
+}
+
 func (c *Client) MediaTitle() (string, error) {
 	return c.stringProperty("media-title")
 }
@@ -84,20 +110,22 @@ func (c *Client) Filename() (string, error) {
 	return c.stringProperty("filename")
 }
 
-// func (c *Client) MediaTitle() (string, error) {
+func (c *Client) PlaybackTime() (time.Duration, error) {
 
-// 	data, err := c.command("media-title")
-// 	if err != nil {
-// 		return "", err
-// 	}
+	value, err := c.floatProperty("playback-time")
+	if err != nil {
+		return 0, err
+	}
 
-// 	var response response
+	return time.Duration(value * float64(time.Second)), nil
 
-// 	err = json.Unmarshal(data, &response)
-// 	if err != nil {
-// 		return "", err
-// 	}
+}
 
-// 	return response.Data, nil
+func (c *Client) Duration() (time.Duration, error) {
+	value, err := c.floatProperty("duration")
+	if err != nil {
+		return 0, err
+	}
 
-// }
+	return time.Duration(value * float64(time.Second)), nil
+}

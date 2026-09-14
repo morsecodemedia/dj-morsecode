@@ -20,6 +20,8 @@ type model struct {
 	OnAir      bool
 	CurrentCue int
 	Player     *player.Player
+	NowPlaying string
+	LastTitle  string
 }
 
 type tickMsg time.Time
@@ -63,15 +65,30 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case tickMsg:
 
-		elapsed := m.Player.Elapsed()
+		position := m.Player.Position()
+
+		title := m.Player.Title()
+
+		if !player.IsStationID(title) {
+
+			m.NowPlaying = title
+
+			if title != m.LastTitle {
+
+				fmt.Println("Song changed:", title)
+
+				m.LastTitle = title
+
+			}
+
+		}
 
 		m.CurrentCue = player.CurrentCue(
 			m.Song.Timeline,
-			elapsed,
+			position,
 		)
 
 		m.OnAir = !m.OnAir
-
 		return m, tick()
 
 	}
@@ -86,7 +103,8 @@ func (m model) View() string {
 		m.Width,
 		m.OnAir,
 		m.CurrentCue,
-		m.Player.Elapsed(),
+		m.Player.Position(),
+		m.NowPlaying,
 	)
 
 }
@@ -113,9 +131,14 @@ func main() {
 		Timeline: timeline,
 	}
 
+	playback, err := player.New("/tmp/dj-morsecode.sock")
+	if err != nil {
+		panic(err)
+	}
+
 	p := tea.NewProgram(model{
 		Song:   song,
-		Player: player.New(),
+		Player: playback,
 	})
 
 	if _, err := p.Run(); err != nil {

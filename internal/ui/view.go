@@ -82,6 +82,7 @@ func Render(
 	onAir bool,
 	currentCue int,
 	elapsed time.Duration,
+	nowPlaying string,
 ) string {
 
 	if width == 0 {
@@ -118,7 +119,13 @@ func Render(
 	s.WriteString(Section.Render(status))
 	s.WriteString("\n\n")
 
-	s.WriteString(Title.Render("♫ " + song.Title))
+	title := nowPlaying
+
+	if title == "" {
+		title = song.Title
+	}
+
+	s.WriteString(Title.Render("♫ " + title))
 	s.WriteString("\n\n")
 
 	s.WriteString(Artist.Render(song.Artist))

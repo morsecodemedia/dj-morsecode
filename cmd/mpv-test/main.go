@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 
+	"github.com/morsecodemedia/dj-morsecode/internal/metadata"
 	"github.com/morsecodemedia/dj-morsecode/internal/player/mpv"
 )
 
@@ -14,6 +15,12 @@ func main() {
 	}
 
 	title, _ := client.MediaTitle()
+	track := metadata.Resolve(title)
+
+	fmt.Println(track.RawTitle)
+	fmt.Println(track.Artist)
+	fmt.Println(track.Title)
+	fmt.Println(track.Valid)
 
 	playback, _ := client.PlaybackTime()
 

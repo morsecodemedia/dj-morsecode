@@ -7,7 +7,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
-	"github.com/morsecodemedia/dj-morsecode/internal/lyrics"
+	"github.com/morsecodemedia/dj-morsecode/internal/metadata"
 	"github.com/morsecodemedia/dj-morsecode/internal/music"
 	"github.com/morsecodemedia/dj-morsecode/internal/player"
 	"github.com/morsecodemedia/dj-morsecode/internal/ui"
@@ -67,17 +67,26 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		position := m.Player.Position()
 
-		title := m.Player.Title()
+		track := metadata.Resolve(
+			m.Player.Title(),
+		)
 
-		if !player.IsStationID(title) {
+		if track.Valid {
 
-			m.NowPlaying = title
+			m.NowPlaying = track.RawTitle
 
-			if title != m.LastTitle {
+			if track.RawTitle != m.LastTitle {
 
-				fmt.Println("Song changed:", title)
+				fmt.Printf(
+					"\nTrack changed\n"+
+						"-------------\n"+
+						"Artist : %s\n"+
+						"Title  : %s\n\n",
+					track.Artist,
+					track.Title,
+				)
 
-				m.LastTitle = title
+				m.LastTitle = track.RawTitle
 
 			}
 
@@ -111,24 +120,14 @@ func (m model) View() string {
 
 func main() {
 
-	lines, err := lyrics.Load("assets/interstate-love-song.lrc")
+	song, err := music.Load(
+		"assets/interstate-love-song.lrc",
+	)
 	if err != nil {
 
 		fmt.Println(err)
 		os.Exit(1)
 
-	}
-
-	metadata := lyrics.ParseMetadata(lines)
-
-	timeline := lyrics.ParseTimeline(lines)
-
-	song := music.Song{
-		Title:    metadata.Title,
-		Artist:   metadata.Artist,
-		Album:    metadata.Album,
-		Duration: metadata.Duration,
-		Timeline: timeline,
 	}
 
 	playback, err := player.New("/tmp/dj-morsecode.sock")

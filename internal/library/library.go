@@ -12,9 +12,9 @@ var demoLibrary = map[string]string{
 	"Snap Your Fingers": "assets/snap-your-fingers.lrc",
 }
 
-func Load(rawTitle string) (music.Song, bool) {
+func Load(artist, title string) (music.Song, bool) {
 
-	path, ok := demoLibrary[rawTitle]
+	path, ok := demoLibrary[title]
 	if !ok {
 		return music.Song{}, false
 	}

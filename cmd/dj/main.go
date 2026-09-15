@@ -82,7 +82,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if track.RawTitle != m.LastTitle {
 
 				fmt.Printf("Loaded: %s\n", track.RawTitle)
-				song, ok := library.Load(track.RawTitle)
+				song, ok := library.Load(
+					track.Artist,
+					track.Title,
+				)
 
 				if ok {
 

@@ -106,6 +106,18 @@ func (c *Client) MediaTitle() (string, error) {
 	return c.stringProperty("media-title")
 }
 
+func (c *Client) Artist() (string, error) {
+	return c.stringProperty("metadata/by-key/artist")
+}
+
+func (c *Client) Title() (string, error) {
+	return c.stringProperty("metadata/by-key/title")
+}
+
+func (c *Client) Album() (string, error) {
+	return c.stringProperty("metadata/by-key/album")
+}
+
 func (c *Client) Filename() (string, error) {
 	return c.stringProperty("filename")
 }

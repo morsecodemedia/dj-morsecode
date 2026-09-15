@@ -34,6 +34,39 @@ func (p *Player) Title() string {
 
 }
 
+func (p *Player) Artist() string {
+
+	artist, err := p.client.Artist()
+	if err != nil {
+		return ""
+	}
+
+	return artist
+
+}
+
+func (p *Player) TrackTitle() string {
+
+	title, err := p.client.Title()
+	if err != nil {
+		return ""
+	}
+
+	return title
+
+}
+
+func (p *Player) Album() string {
+
+	album, err := p.client.Album()
+	if err != nil {
+		return ""
+	}
+
+	return album
+
+}
+
 func (p *Player) Position() time.Duration {
 
 	position, err := p.client.PlaybackTime()

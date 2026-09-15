@@ -1,6 +1,10 @@
 package lyrics
 
-import "github.com/morsecodemedia/dj-morsecode/internal/music"
+import (
+	"strings"
+
+	"github.com/morsecodemedia/dj-morsecode/internal/music"
+)
 
 func LoadSong(path string) (music.Song, error) {
 
@@ -8,6 +12,23 @@ func LoadSong(path string) (music.Song, error) {
 	if err != nil {
 		return music.Song{}, err
 	}
+
+	return FromLines(lines), nil
+
+}
+
+func FromString(content string) music.Song {
+
+	lines := strings.Split(
+		strings.ReplaceAll(content, "\r\n", "\n"),
+		"\n",
+	)
+
+	return FromLines(lines)
+
+}
+
+func FromLines(lines []string) music.Song {
 
 	metadata := ParseMetadata(lines)
 
@@ -19,6 +40,6 @@ func LoadSong(path string) (music.Song, error) {
 		Album:    metadata.Album,
 		Duration: metadata.Duration,
 		Timeline: timeline,
-	}, nil
+	}
 
 }

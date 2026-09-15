@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 )
 
 func TestSearch(t *testing.T) {
@@ -99,6 +100,97 @@ func TestSearch(t *testing.T) {
 			"unexpected synced lyrics %q",
 			result.SyncedLyrics,
 		)
+	}
+
+}
+
+func TestBestMatch(t *testing.T) {
+
+	results := []Result{
+		{
+			ID:           1,
+			Duration:     252,
+			SyncedLyrics: "[00:01.00]Wrong version",
+		},
+		{
+			ID:           2,
+			Duration:     193,
+			SyncedLyrics: "[00:01.00]Close",
+		},
+		{
+			ID:           3,
+			Duration:     194,
+			SyncedLyrics: "[00:01.00]Best",
+		},
+		{
+			ID:           4,
+			Duration:     195,
+			SyncedLyrics: "[00:01.00]Also close",
+		},
+	}
+
+	result, ok := BestMatch(
+		results,
+		194*time.Second,
+	)
+
+	if !ok {
+		t.Fatal("expected a match")
+	}
+
+	if result.ID != 3 {
+		t.Errorf(
+			"expected result ID 3, got %d",
+			result.ID,
+		)
+	}
+
+}
+
+func TestBestMatchRejectsOutsideTolerance(t *testing.T) {
+
+	results := []Result{
+		{
+			ID:           1,
+			Duration:     205,
+			SyncedLyrics: "[00:01.00]Wrong version",
+		},
+		{
+			ID:           2,
+			Duration:     252,
+			SyncedLyrics: "[00:01.00]Very wrong version",
+		},
+	}
+
+	_, ok := BestMatch(
+		results,
+		194*time.Second,
+	)
+
+	if ok {
+		t.Fatal("expected no match")
+	}
+
+}
+
+func TestBestMatchRequiresSyncedLyrics(t *testing.T) {
+
+	results := []Result{
+		{
+			ID:           1,
+			Duration:     194,
+			PlainLyrics:  "Plain lyrics only",
+			SyncedLyrics: "",
+		},
+	}
+
+	_, ok := BestMatch(
+		results,
+		194*time.Second,
+	)
+
+	if ok {
+		t.Fatal("expected no match")
 	}
 
 }

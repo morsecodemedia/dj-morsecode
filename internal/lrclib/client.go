@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"time"
 )
 
 const baseURL = "https://lrclib.net"
+const durationTolerance = 5 * time.Second
 
 type Result struct {
 	ID           int     `json:"id"`
@@ -19,6 +21,49 @@ type Result struct {
 	PlainLyrics  string  `json:"plainLyrics"`
 	SyncedLyrics string  `json:"syncedLyrics"`
 	Lyricsfile   string  `json:"lyricsfile"`
+}
+
+func BestMatch(
+	results []Result,
+	duration time.Duration,
+) (Result, bool) {
+
+	var best Result
+	var bestDelta time.Duration
+	found := false
+
+	for _, result := range results {
+
+		if result.SyncedLyrics == "" {
+			continue
+		}
+
+		resultDuration := time.Duration(
+			result.Duration * float64(time.Second),
+		)
+
+		delta := resultDuration - duration
+
+		if delta < 0 {
+			delta = -delta
+		}
+
+		if delta > durationTolerance {
+			continue
+		}
+
+		if !found || delta < bestDelta {
+
+			best = result
+			bestDelta = delta
+			found = true
+
+		}
+
+	}
+
+	return best, found
+
 }
 
 type Client struct {

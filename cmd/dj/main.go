@@ -7,6 +7,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/morsecodemedia/dj-morsecode/internal/library"
+	"github.com/morsecodemedia/dj-morsecode/internal/lrclib"
 	"github.com/morsecodemedia/dj-morsecode/internal/lyrics"
 	"github.com/morsecodemedia/dj-morsecode/internal/metadata"
 	"github.com/morsecodemedia/dj-morsecode/internal/music"
@@ -27,6 +28,12 @@ type model struct {
 
 type tickMsg time.Time
 
+type lrclibSongMsg struct {
+	RawTitle string
+	Song     music.Song
+	Err      error
+}
+
 const TickRate = time.Second
 
 func tick() tea.Cmd {
@@ -37,6 +44,51 @@ func tick() tea.Cmd {
 			return tickMsg(t)
 		},
 	)
+
+}
+
+func loadLRCLIBSong(
+	rawTitle string,
+	artist string,
+	title string,
+	duration time.Duration,
+) tea.Cmd {
+
+	return func() tea.Msg {
+
+		client := lrclib.NewClient()
+
+		results, err := client.Search(
+			artist,
+			title,
+		)
+		if err != nil {
+			return lrclibSongMsg{
+				RawTitle: rawTitle,
+				Err:      err,
+			}
+		}
+
+		result, ok := lrclib.BestMatch(
+			results,
+			duration,
+		)
+		if !ok {
+			return lrclibSongMsg{
+				RawTitle: rawTitle,
+				Err: fmt.Errorf(
+					"no LRCLIB match for %s",
+					rawTitle,
+				),
+			}
+		}
+
+		return lrclibSongMsg{
+			RawTitle: rawTitle,
+			Song:     lrclib.Song(result),
+		}
+
+	}
 
 }
 
@@ -67,11 +119,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tickMsg:
 
 		position := m.Player.Position()
-
+		duration := m.Player.Duration()
 		rawTitle := m.Player.Title()
 		artist := m.Player.Artist()
 		title := m.Player.TrackTitle()
-
+		album := m.Player.Album()
 		track := metadata.Resolve(rawTitle)
 
 		if artist != "" {
@@ -93,6 +145,16 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if track.RawTitle != m.LastTitle {
 
 				fmt.Printf("Loaded: %s\n", track.RawTitle)
+
+				m.Song = music.Song{
+					Title:    track.Title,
+					Artist:   track.Artist,
+					Album:    album,
+					Duration: duration,
+				}
+
+				m.CurrentCue = 0
+
 				song, ok := library.Load(
 					track.Artist,
 					track.Title,
@@ -101,11 +163,23 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if ok {
 
 					m.Song = song
-					m.CurrentCue = 0
+					m.LastTitle = track.RawTitle
+
+					return m, tick()
 
 				}
 
 				m.LastTitle = track.RawTitle
+
+				return m, tea.Batch(
+					tick(),
+					loadLRCLIBSong(
+						track.RawTitle,
+						track.Artist,
+						track.Title,
+						duration,
+					),
+				)
 
 			}
 
@@ -118,6 +192,24 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		m.OnAir = !m.OnAir
 		return m, tick()
+
+	case lrclibSongMsg:
+
+		if msg.Err != nil {
+			return m, nil
+		}
+
+		if msg.RawTitle != m.LastTitle {
+			return m, nil
+		}
+
+		m.Song.Timeline = msg.Song.Timeline
+		m.CurrentCue = player.CurrentCue(
+			m.Song.Timeline,
+			m.Player.Position(),
+		)
+
+		return m, nil
 
 	}
 

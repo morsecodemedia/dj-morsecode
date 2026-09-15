@@ -83,6 +83,7 @@ func Render(
 	currentCue int,
 	elapsed time.Duration,
 	nowPlaying string,
+	lyricsStatus string,
 ) string {
 
 	if width == 0 {
@@ -162,7 +163,11 @@ func Render(
 	s.WriteString(
 		Album.Render(bar),
 	)
+	s.WriteString("\n\n")
 
+	s.WriteString(
+		Album.Render("LYRICS • " + lyricsStatus),
+	)
 	s.WriteString("\n\n")
 
 	s.WriteString(Divider(width))

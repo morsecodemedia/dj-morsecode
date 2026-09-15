@@ -15,15 +15,45 @@ import (
 	"github.com/morsecodemedia/dj-morsecode/internal/ui"
 )
 
+type lyricsState int
+
+const (
+	lyricsUnavailable lyricsState = iota
+	lyricsLocal
+	lyricsSearching
+	lyricsRemote
+)
+
+func (s lyricsState) String() string {
+
+	switch s {
+
+	case lyricsLocal:
+		return "LOCAL"
+
+	case lyricsSearching:
+		return "SEARCHING"
+
+	case lyricsRemote:
+		return "LRCLIB"
+
+	default:
+		return "UNAVAILABLE"
+
+	}
+
+}
+
 type model struct {
-	Width      int
-	Height     int
-	Song       music.Song
-	OnAir      bool
-	CurrentCue int
-	Player     *player.Player
-	NowPlaying string
-	LastTitle  string
+	Width       int
+	Height      int
+	Song        music.Song
+	OnAir       bool
+	CurrentCue  int
+	Player      *player.Player
+	NowPlaying  string
+	LastTitle   string
+	LyricsState lyricsState
 }
 
 type tickMsg time.Time
@@ -161,6 +191,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if ok {
 
 					m.Song = song
+					m.LyricsState = lyricsLocal
 					m.LastTitle = track.RawTitle
 
 					return m, tick()
@@ -168,6 +199,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 
 				m.LastTitle = track.RawTitle
+				m.LyricsState = lyricsSearching
 
 				return m, tea.Batch(
 					tick(),
@@ -193,15 +225,17 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case lrclibSongMsg:
 
-		if msg.Err != nil {
-			return m, nil
-		}
-
 		if msg.RawTitle != m.LastTitle {
 			return m, nil
 		}
 
+		if msg.Err != nil {
+			m.LyricsState = lyricsUnavailable
+			return m, nil
+		}
+
 		m.Song.Timeline = msg.Song.Timeline
+		m.LyricsState = lyricsRemote
 		m.CurrentCue = player.CurrentCue(
 			m.Song.Timeline,
 			m.Player.Position(),
@@ -223,6 +257,7 @@ func (m model) View() string {
 		m.CurrentCue,
 		m.Player.Position(),
 		m.NowPlaying,
+		m.LyricsState.String(),
 	)
 
 }

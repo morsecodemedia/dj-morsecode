@@ -6,7 +6,8 @@ import (
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
-
+	"github.com/morsecodemedia/dj-morsecode/internal/library"
+	"github.com/morsecodemedia/dj-morsecode/internal/lyrics"
 	"github.com/morsecodemedia/dj-morsecode/internal/metadata"
 	"github.com/morsecodemedia/dj-morsecode/internal/music"
 	"github.com/morsecodemedia/dj-morsecode/internal/player"
@@ -70,6 +71,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		track := metadata.Resolve(
 			m.Player.Title(),
 		)
+		if track.RawTitle == "" {
+			return m, tick()
+		}
 
 		if track.Valid {
 
@@ -77,14 +81,15 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			if track.RawTitle != m.LastTitle {
 
-				fmt.Printf(
-					"\nTrack changed\n"+
-						"-------------\n"+
-						"Artist : %s\n"+
-						"Title  : %s\n\n",
-					track.Artist,
-					track.Title,
-				)
+				fmt.Printf("Loaded: %s\n", track.RawTitle)
+				song, ok := library.Load(track.RawTitle)
+
+				if ok {
+
+					m.Song = song
+					m.CurrentCue = 0
+
+				}
 
 				m.LastTitle = track.RawTitle
 
@@ -120,7 +125,7 @@ func (m model) View() string {
 
 func main() {
 
-	song, err := music.Load(
+	song, err := lyrics.LoadSong(
 		"assets/interstate-love-song.lrc",
 	)
 	if err != nil {

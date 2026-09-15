@@ -27,12 +27,19 @@ func Resolve(raw string) NowPlaying {
 		2,
 	)
 
-	if len(parts) != 2 {
+	if len(parts) == 2 {
+
+		nowPlaying.Artist = strings.TrimSpace(parts[0])
+		nowPlaying.Title = strings.TrimSpace(parts[1])
+		nowPlaying.Valid = true
+
 		return nowPlaying
+
 	}
 
-	nowPlaying.Artist = strings.TrimSpace(parts[0])
-	nowPlaying.Title = strings.TrimSpace(parts[1])
+	// No artist/title separator found.
+	// Treat the raw value as a title-only track.
+	nowPlaying.Title = nowPlaying.RawTitle
 	nowPlaying.Valid = true
 
 	return nowPlaying

@@ -68,9 +68,20 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		position := m.Player.Position()
 
-		track := metadata.Resolve(
-			m.Player.Title(),
-		)
+		rawTitle := m.Player.Title()
+		artist := m.Player.Artist()
+		title := m.Player.TrackTitle()
+
+		track := metadata.Resolve(rawTitle)
+
+		if artist != "" {
+			track.Artist = artist
+		}
+
+		if title != "" {
+			track.Title = title
+		}
+
 		if track.RawTitle == "" {
 			return m, tick()
 		}

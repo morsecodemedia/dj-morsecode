@@ -144,8 +144,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			if track.RawTitle != m.LastTitle {
 
-				fmt.Printf("Loaded: %s\n", track.RawTitle)
-
 				m.Song = music.Song{
 					Title:    track.Title,
 					Artist:   track.Artist,

@@ -34,6 +34,17 @@ func (p *Player) Title() string {
 
 }
 
+func (p *Player) Filename() string {
+
+	filename, err := p.client.Filename()
+	if err != nil {
+		return ""
+	}
+
+	return filename
+
+}
+
 func (p *Player) Artist() string {
 
 	artist, err := p.client.Artist()

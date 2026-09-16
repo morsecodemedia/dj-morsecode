@@ -52,16 +52,16 @@ type model struct {
 	CurrentCue  int
 	Player      *player.Player
 	NowPlaying  string
-	LastTitle   string
+	LastTrack   string
 	LyricsState lyricsState
 }
 
 type tickMsg time.Time
 
 type lrclibSongMsg struct {
-	RawTitle string
-	Song     music.Song
-	Err      error
+	TrackID string
+	Song    music.Song
+	Err     error
 }
 
 const TickRate = time.Second
@@ -78,7 +78,7 @@ func tick() tea.Cmd {
 }
 
 func loadLRCLIBSong(
-	rawTitle string,
+	trackID string,
 	artist string,
 	title string,
 	duration time.Duration,
@@ -94,8 +94,8 @@ func loadLRCLIBSong(
 		)
 		if err != nil {
 			return lrclibSongMsg{
-				RawTitle: rawTitle,
-				Err:      err,
+				TrackID: trackID,
+				Err:     err,
 			}
 		}
 
@@ -105,17 +105,17 @@ func loadLRCLIBSong(
 		)
 		if !ok {
 			return lrclibSongMsg{
-				RawTitle: rawTitle,
+				TrackID: trackID,
 				Err: fmt.Errorf(
 					"no LRCLIB match for %s",
-					rawTitle,
+					title,
 				),
 			}
 		}
 
 		return lrclibSongMsg{
-			RawTitle: rawTitle,
-			Song:     lrclib.Song(result),
+			TrackID: trackID,
+			Song:    lrclib.Song(result),
 		}
 
 	}
@@ -150,10 +150,17 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		position := m.Player.Position()
 		duration := m.Player.Duration()
+
+		if duration > 0 {
+			m.Song.Duration = duration
+		}
+
 		rawTitle := m.Player.Title()
 		artist := m.Player.Artist()
 		title := m.Player.TrackTitle()
 		album := m.Player.Album()
+		filename := m.Player.Filename()
+
 		track := metadata.Resolve(rawTitle)
 
 		if artist != "" {
@@ -172,7 +179,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			m.NowPlaying = track.RawTitle
 
-			if track.RawTitle != m.LastTitle {
+			if filename != m.LastTrack {
 
 				m.Song = music.Song{
 					Title:    track.Title,
@@ -192,19 +199,19 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 					m.Song = song
 					m.LyricsState = lyricsLocal
-					m.LastTitle = track.RawTitle
+					m.LastTrack = filename
 
 					return m, tick()
 
 				}
 
-				m.LastTitle = track.RawTitle
+				m.LastTrack = filename
 				m.LyricsState = lyricsSearching
 
 				return m, tea.Batch(
 					tick(),
 					loadLRCLIBSong(
-						track.RawTitle,
+						filename,
 						track.Artist,
 						track.Title,
 						duration,
@@ -225,7 +232,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case lrclibSongMsg:
 
-		if msg.RawTitle != m.LastTitle {
+		if msg.TrackID != m.LastTrack {
 			return m, nil
 		}
 

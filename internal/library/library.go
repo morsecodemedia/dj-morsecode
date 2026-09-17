@@ -15,16 +15,22 @@ var demoLibrary = map[string]string{
 func Load(artist, title string) (music.Song, bool) {
 
 	path, ok := demoLibrary[title]
-	if !ok {
-		return music.Song{}, false
+
+	if ok {
+
+		song, err := lyrics.LoadSong(path)
+		if err != nil {
+			fmt.Println(err)
+			return music.Song{}, false
+		}
+
+		return song, true
+
 	}
 
-	song, err := lyrics.LoadSong(path)
-	if err != nil {
-		fmt.Println(err)
-		return music.Song{}, false
-	}
-
-	return song, true
+	return LoadCached(
+		artist,
+		title,
+	)
 
 }

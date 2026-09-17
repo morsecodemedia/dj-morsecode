@@ -59,9 +59,10 @@ type model struct {
 type tickMsg time.Time
 
 type lrclibSongMsg struct {
-	TrackID string
-	Song    music.Song
-	Err     error
+	TrackID      string
+	Song         music.Song
+	SyncedLyrics string
+	Err          error
 }
 
 const TickRate = time.Second
@@ -114,8 +115,9 @@ func loadLRCLIBSong(
 		}
 
 		return lrclibSongMsg{
-			TrackID: trackID,
-			Song:    lrclib.Song(result),
+			TrackID:      trackID,
+			Song:         lrclib.Song(result),
+			SyncedLyrics: result.SyncedLyrics,
 		}
 
 	}
@@ -197,7 +199,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 				if ok {
 
-					m.Song = song
+					m.Song.Timeline = song.Timeline
 					m.LyricsState = lyricsLocal
 					m.LastTrack = filename
 
@@ -237,6 +239,16 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		if msg.Err != nil {
+			m.LyricsState = lyricsUnavailable
+			return m, nil
+		}
+
+		_, err := library.Store(
+			m.Song.Artist,
+			m.Song.Title,
+			msg.SyncedLyrics,
+		)
+		if err != nil {
 			m.LyricsState = lyricsUnavailable
 			return m, nil
 		}

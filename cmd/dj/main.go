@@ -161,7 +161,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		artist := m.Player.Artist()
 		title := m.Player.TrackTitle()
 		album := m.Player.Album()
-		filename := m.Player.Filename()
+		trackID := m.Player.TrackID()
 
 		track := metadata.Resolve(rawTitle)
 
@@ -181,7 +181,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			m.NowPlaying = track.RawTitle
 
-			if filename != m.LastTrack {
+			if trackID != m.LastTrack {
 
 				m.Song = music.Song{
 					Title:    track.Title,
@@ -201,19 +201,19 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 					m.Song.Timeline = song.Timeline
 					m.LyricsState = lyricsLocal
-					m.LastTrack = filename
+					m.LastTrack = trackID
 
 					return m, tick()
 
 				}
 
-				m.LastTrack = filename
+				m.LastTrack = trackID
 				m.LyricsState = lyricsSearching
 
 				return m, tea.Batch(
 					tick(),
 					loadLRCLIBSong(
-						filename,
+						trackID,
 						track.Artist,
 						track.Title,
 						duration,

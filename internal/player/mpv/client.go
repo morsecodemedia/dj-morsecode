@@ -122,6 +122,10 @@ func (c *Client) Filename() (string, error) {
 	return c.stringProperty("filename")
 }
 
+func (c *Client) Path() (string, error) {
+	return c.stringProperty("path")
+}
+
 func (c *Client) PlaybackTime() (time.Duration, error) {
 
 	value, err := c.floatProperty("playback-time")

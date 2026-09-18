@@ -56,6 +56,19 @@ func (p *Player) Artist() string {
 
 }
 
+func (p *Player) TrackID() string {
+
+	path := p.Path()
+	title := p.Title()
+
+	if path == "" {
+		return title
+	}
+
+	return path + "\x00" + title
+
+}
+
 func (p *Player) TrackTitle() string {
 
 	title, err := p.client.Title()

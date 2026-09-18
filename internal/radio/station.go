@@ -74,3 +74,17 @@ func Find(id string) (*Station, bool) {
 	return nil, false
 
 }
+
+func FindByStreamURL(streamURL string) (*Station, bool) {
+
+	for i := range Stations {
+
+		if Stations[i].StreamURL == streamURL {
+			return &Stations[i], true
+		}
+
+	}
+
+	return nil, false
+
+}

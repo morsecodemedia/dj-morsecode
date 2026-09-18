@@ -149,6 +149,7 @@ func Render(
 	elapsed time.Duration,
 	nowPlaying string,
 	lyricsStatus string,
+	stationName string,
 ) string {
 
 	if width == 0 {
@@ -183,7 +184,18 @@ func Render(
 	}
 
 	s.WriteString(Section.Render(status))
-	s.WriteString("\n\n")
+	s.WriteString("\n")
+
+	if stationName != "" {
+
+		s.WriteString(
+			Album.Render("STATION • " + stationName),
+		)
+		s.WriteString("\n")
+
+	}
+
+	s.WriteString("\n")
 
 	title := nowPlaying
 

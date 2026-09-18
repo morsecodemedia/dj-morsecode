@@ -57,6 +57,19 @@ type model struct {
 	LyricsState       lyricsState
 	StationPickerOpen bool
 	StationIndex      int
+	CurrentStationID  string
+}
+
+func (m model) CurrentStation() (*radio.Station, bool) {
+
+	if m.CurrentStationID == "" {
+		return nil, false
+	}
+
+	return radio.Find(
+		m.CurrentStationID,
+	)
+
 }
 
 type tickMsg time.Time
@@ -158,6 +171,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return m, nil
 				}
 
+				m.CurrentStationID = station.ID
 				m.StationPickerOpen = false
 
 				return m, nil
@@ -222,8 +236,16 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		title := m.Player.TrackTitle()
 		album := m.Player.Album()
 		trackID := m.Player.TrackID()
-
+		path := m.Player.Path()
 		track := metadata.Resolve(rawTitle)
+
+		station, ok := radio.FindByStreamURL(path)
+
+		if ok {
+			m.CurrentStationID = station.ID
+		} else {
+			m.CurrentStationID = ""
+		}
 
 		if artist != "" {
 			track.Artist = artist
@@ -339,6 +361,12 @@ func (m model) View() string {
 
 	}
 
+	stationName := ""
+
+	if station, ok := m.CurrentStation(); ok {
+		stationName = station.Name
+	}
+
 	return ui.Render(
 		m.Song,
 		m.Width,
@@ -347,6 +375,7 @@ func (m model) View() string {
 		m.Player.Position(),
 		m.NowPlaying,
 		m.LyricsState.String(),
+		stationName,
 	)
 
 }

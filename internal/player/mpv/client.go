@@ -64,6 +64,56 @@ func (c *Client) command(property string) ([]byte, error) {
 
 }
 
+func (c *Client) loadFile(path string) error {
+
+	command := struct {
+		Command []string `json:"command"`
+	}{
+		Command: []string{
+			"loadfile",
+			path,
+			"replace",
+		},
+	}
+
+	data, err := json.Marshal(command)
+	if err != nil {
+		return err
+	}
+
+	data = append(data, '\n')
+
+	_, err = c.conn.Write(data)
+	if err != nil {
+		return err
+	}
+
+	reader := bufio.NewReader(c.conn)
+
+	response, err := reader.ReadBytes('\n')
+	if err != nil {
+		return err
+	}
+
+	var result struct {
+		Error string `json:"error"`
+	}
+
+	if err := json.Unmarshal(response, &result); err != nil {
+		return err
+	}
+
+	if result.Error != "success" {
+		return fmt.Errorf(
+			"mpv loadfile failed: %s",
+			result.Error,
+		)
+	}
+
+	return nil
+
+}
+
 func (c *Client) stringProperty(
 	property string,
 ) (string, error) {
@@ -99,6 +149,12 @@ func (c *Client) floatProperty(
 	}
 
 	return response.Data, nil
+
+}
+
+func (c *Client) Load(path string) error {
+
+	return c.loadFile(path)
 
 }
 

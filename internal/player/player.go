@@ -23,14 +23,9 @@ func New(socket string) (*Player, error) {
 
 }
 
-func (p *Player) Title() string {
+func (p *Player) Load(path string) error {
 
-	title, err := p.client.MediaTitle()
-	if err != nil {
-		return ""
-	}
-
-	return title
+	return p.client.Load(path)
 
 }
 
@@ -42,6 +37,28 @@ func (p *Player) Filename() string {
 	}
 
 	return filename
+
+}
+
+func (p *Player) Path() string {
+
+	path, err := p.client.Path()
+	if err != nil {
+		return ""
+	}
+
+	return path
+
+}
+
+func (p *Player) Title() string {
+
+	title, err := p.client.MediaTitle()
+	if err != nil {
+		return ""
+	}
+
+	return title
 
 }
 

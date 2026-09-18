@@ -15,34 +15,9 @@ type Station struct {
 
 var Stations = []Station{
 	{
-		ID:        "anonradio",
-		Name:      "AnonRadio",
-		StreamURL: "http://anonradio.net:8000/anonradio",
-	},
-	{
-		ID:        "classicfm",
-		Name:      "Classic FM",
-		StreamURL: "https://www.globalplayer.com/live/classicfm/uk",
-	},
-	{
-		ID:        "evergreen",
-		Name:      "Evergreen",
-		StreamURL: "https://emg.streamguys1.com/evergreen-website",
-	},
-	{
-		ID:        "sleepbot",
-		Name:      "Sleepbot Ambient",
-		StreamURL: "http://www.sleepbot.com/ambience/cgi/listen.cgi/listen.pls",
-	},
-	{
-		ID:        "thechristmasstation",
-		Name:      "The Christmas Station",
-		StreamURL: "https://stream.radio.co/s63541ce9b/listen",
-	},
-	{
-		ID:        "tilderadio",
-		Name:      "Tilde Radio",
-		StreamURL: "https://azuracast.tilderadio.org/radio/8000/320k.ogg",
+		ID:        "z100",
+		Name:      "Z100",
+		StreamURL: "https://stream.revma.ihrhls.com/zc1469",
 	},
 	{
 		ID:        "wrti",
@@ -58,6 +33,21 @@ var Stations = []Station{
 		ID:        "wxpn2",
 		Name:      "WXPN2",
 		StreamURL: "https://wxpn.xpn.org/xpn2mp3hi",
+	},
+	{
+		ID:        "classicvinyl",
+		Name:      "Classic Vinyl",
+		StreamURL: "https://icecast.walmradio.com:8443/classic_opus",
+	},
+	{
+		ID:        "hardrockradiofm",
+		Name:      "Hard Rock Radio FM",
+		StreamURL: "http://67.249.184.45:8015/listen.pls",
+	},
+	{
+		ID:        "lofi247",
+		Name:      "Lofi 24/7",
+		StreamURL: "http://usa9.fastcast4u.com/proxy/jamz?mp=/1",
 	},
 }
 

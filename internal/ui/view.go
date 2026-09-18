@@ -7,6 +7,7 @@ import (
 
 	"github.com/morsecodemedia/dj-morsecode/internal/music"
 	"github.com/morsecodemedia/dj-morsecode/internal/player"
+	"github.com/morsecodemedia/dj-morsecode/internal/radio"
 )
 
 // BuildViewport converts the complete song timeline into the
@@ -74,6 +75,70 @@ func cueMarker(
 
 func upcomingMarker() string {
 	return "·"
+}
+
+func RenderStationPicker(
+	stations []radio.Station,
+	selected int,
+	width int,
+) string {
+
+	if width == 0 {
+		width = 72
+	}
+
+	var s strings.Builder
+
+	s.WriteString(Divider(width))
+	s.WriteString("\n\n")
+
+	s.WriteString(Center(
+		Header.Render("SELECT A STATION"),
+		width,
+	))
+
+	s.WriteString("\n")
+
+	s.WriteString(Center(
+		Subtitle.Render("Tune in to something good."),
+		width,
+	))
+
+	s.WriteString("\n\n")
+	s.WriteString(Divider(width))
+	s.WriteString("\n\n")
+
+	for i, station := range stations {
+
+		prefix := "  "
+
+		if i == selected {
+			prefix = "▶ "
+		}
+
+		line := prefix + station.Name
+
+		if i == selected {
+			s.WriteString(Title.Render(line))
+		} else {
+			s.WriteString(Artist.Render(line))
+		}
+
+		s.WriteString("\n")
+
+	}
+
+	s.WriteString("\n")
+	s.WriteString(Divider(width))
+	s.WriteString("\n\n")
+
+	s.WriteString(Center(
+		Footer.Render("↑/↓ or j/k to navigate • enter to tune • esc to cancel"),
+		width,
+	))
+
+	return s.String()
+
 }
 
 func Render(

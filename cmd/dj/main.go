@@ -12,6 +12,7 @@ import (
 	"github.com/morsecodemedia/dj-morsecode/internal/metadata"
 	"github.com/morsecodemedia/dj-morsecode/internal/music"
 	"github.com/morsecodemedia/dj-morsecode/internal/player"
+	"github.com/morsecodemedia/dj-morsecode/internal/radio"
 	"github.com/morsecodemedia/dj-morsecode/internal/ui"
 )
 
@@ -45,15 +46,17 @@ func (s lyricsState) String() string {
 }
 
 type model struct {
-	Width       int
-	Height      int
-	Song        music.Song
-	OnAir       bool
-	CurrentCue  int
-	Player      *player.Player
-	NowPlaying  string
-	LastTrack   string
-	LyricsState lyricsState
+	Width             int
+	Height            int
+	Song              music.Song
+	OnAir             bool
+	CurrentCue        int
+	Player            *player.Player
+	NowPlaying        string
+	LastTrack         string
+	LyricsState       lyricsState
+	StationPickerOpen bool
+	StationIndex      int
 }
 
 type tickMsg time.Time
@@ -134,10 +137,67 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case tea.KeyMsg:
 
-		switch msg.String() {
+		key := msg.String()
+
+		if m.StationPickerOpen {
+
+			switch key {
+
+			case "enter":
+
+				if len(radio.Stations) == 0 {
+					return m, nil
+				}
+
+				station := radio.Stations[m.StationIndex]
+
+				err := m.Player.Load(
+					station.StreamURL,
+				)
+				if err != nil {
+					return m, nil
+				}
+
+				m.StationPickerOpen = false
+
+				return m, nil
+
+			case "esc":
+				m.StationPickerOpen = false
+				return m, nil
+
+			case "up", "k":
+
+				if m.StationIndex > 0 {
+					m.StationIndex--
+				}
+
+				return m, nil
+
+			case "down", "j":
+
+				if m.StationIndex < len(radio.Stations)-1 {
+					m.StationIndex++
+				}
+
+				return m, nil
+
+			}
+
+			return m, nil
+
+		}
+
+		switch key {
 
 		case "ctrl+c", "q":
 			return m, tea.Quit
+
+		case "s":
+			m.StationPickerOpen = true
+			m.StationIndex = 0
+
+			return m, nil
 
 		}
 
@@ -268,6 +328,16 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m model) View() string {
+
+	if m.StationPickerOpen {
+
+		return ui.RenderStationPicker(
+			radio.Stations,
+			m.StationIndex,
+			m.Width,
+		)
+
+	}
 
 	return ui.Render(
 		m.Song,

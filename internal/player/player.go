@@ -129,3 +129,14 @@ func (p *Player) Duration() time.Duration {
 	return duration
 
 }
+
+func (p *Player) IsNetwork() bool {
+
+	network, err := p.client.DemuxerViaNetwork()
+	if err != nil {
+		return false
+	}
+
+	return network
+
+}

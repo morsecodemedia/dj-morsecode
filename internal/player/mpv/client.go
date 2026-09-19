@@ -22,6 +22,11 @@ type floatResponse struct {
 	Error string  `json:"error"`
 }
 
+type boolResponse struct {
+	Data  bool   `json:"data"`
+	Error string `json:"error"`
+}
+
 func Connect(socket string) (*Client, error) {
 
 	conn, err := net.Dial("unix", socket)
@@ -149,6 +154,34 @@ func (c *Client) floatProperty(
 	}
 
 	return response.Data, nil
+
+}
+
+func (c *Client) boolProperty(
+	property string,
+) (bool, error) {
+
+	data, err := c.command(property)
+	if err != nil {
+		return false, err
+	}
+
+	var response boolResponse
+
+	err = json.Unmarshal(data, &response)
+	if err != nil {
+		return false, err
+	}
+
+	return response.Data, nil
+
+}
+
+func (c *Client) DemuxerViaNetwork() (bool, error) {
+
+	return c.boolProperty(
+		"demuxer-via-network",
+	)
 
 }
 

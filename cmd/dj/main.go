@@ -237,8 +237,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		album := m.Player.Album()
 		trackID := m.Player.TrackID()
 		path := m.Player.Path()
+		isNetwork := m.Player.IsNetwork()
 		track := metadata.Resolve(rawTitle)
-
 		station, ok := radio.FindByStreamURL(path)
 
 		if ok {
@@ -247,12 +247,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.CurrentStationID = ""
 		}
 
-		if artist != "" {
-			track.Artist = artist
-		}
+		if !isNetwork {
+			if artist != "" {
+				track.Artist = artist
+			}
 
-		if title != "" {
-			track.Title = title
+			if title != "" {
+				track.Title = title
+			}
 		}
 
 		if track.RawTitle == "" {

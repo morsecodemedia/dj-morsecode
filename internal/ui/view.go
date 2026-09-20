@@ -632,8 +632,7 @@ func Render(
 	s.WriteString("\n\n")
 
 	s.WriteString(Center(
-		// Footer.Render("Thanks for tuning in. • Press q to sign off."),
-		Footer.Render("s stations • g genre • m mood • m vibes • h history • q sign off"),
+		Footer.Render("s stations • v vibes • m moods • g genres • n next • h history • q sign off"),
 		width,
 	))
 

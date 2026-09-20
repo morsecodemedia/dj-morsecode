@@ -81,6 +81,34 @@ func (m model) CurrentStation() (*radio.Station, bool) {
 
 }
 
+func (m model) nextStation() model {
+
+	if !m.ActiveIntent.Active() {
+		return m
+	}
+
+	station, ok := radio.Choose(
+		m.ActiveIntent.Criteria,
+		m.StationHistory,
+		radio.ChooseOptions{
+			RecentLimit: 3,
+		},
+	)
+	if !ok {
+		return m
+	}
+
+	err := m.Player.Load(
+		station.StreamURL,
+	)
+	if err != nil {
+		return m
+	}
+
+	return m
+
+}
+
 type tickMsg time.Time
 
 type lrclibSongMsg struct {
@@ -388,7 +416,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return m, nil
 				}
 
-				m.CurrentStationID = station.ID
+				m.ActiveIntent = radio.Intent{}
 				m.StationPickerOpen = false
 
 				return m, nil
@@ -450,6 +478,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.GenrePickerOpen = true
 			m.GenreIndex = 0
 
+			return m, nil
+
+		case "n":
+			m = m.nextStation()
 			return m, nil
 
 		}

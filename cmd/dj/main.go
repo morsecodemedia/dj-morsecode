@@ -18,6 +18,8 @@ import (
 
 type lyricsState int
 
+const stationRotationInterval = 30 * time.Minute
+
 const (
 	lyricsUnavailable lyricsState = iota
 	lyricsLocal
@@ -106,6 +108,25 @@ func (m model) nextStation() model {
 	}
 
 	return m
+
+}
+
+func (m model) shouldRotateStation(
+	now time.Time,
+) bool {
+
+	if !m.ActiveIntent.Active() {
+		return false
+	}
+
+	current, ok := m.StationHistory.Current()
+	if !ok {
+		return false
+	}
+
+	return now.Sub(
+		current.TunedAt,
+	) >= stationRotationInterval
 
 }
 
@@ -510,6 +531,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		path := m.Player.Path()
 		isNetwork := m.Player.IsNetwork()
 		track := metadata.Resolve(rawTitle)
+
 		station, ok := radio.FindByStreamURL(path)
 
 		if ok {
@@ -524,6 +546,16 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		} else {
 
 			m.CurrentStationID = ""
+
+		}
+
+		if m.shouldRotateStation(
+			time.Now(),
+		) {
+
+			m = m.nextStation()
+
+			return m, tick()
 
 		}
 

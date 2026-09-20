@@ -58,6 +58,8 @@ type model struct {
 	StationPickerOpen  bool
 	StationHistoryOpen bool
 	VibePickerOpen     bool
+	GenrePickerOpen    bool
+	GenreIndex         int
 	VibeIndex          int
 	StationIndex       int
 	CurrentStationID   string
@@ -155,6 +157,72 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 
 		key := msg.String()
+
+		if m.GenrePickerOpen {
+
+			genres := radio.Genres()
+
+			switch key {
+
+			case "esc":
+				m.GenrePickerOpen = false
+				return m, nil
+
+			case "up", "k":
+
+				if m.GenreIndex > 0 {
+					m.GenreIndex--
+				}
+
+				return m, nil
+
+			case "down", "j":
+
+				if m.GenreIndex < len(genres)-1 {
+					m.GenreIndex++
+				}
+
+				return m, nil
+
+			case "enter":
+
+				if len(genres) == 0 {
+					return m, nil
+				}
+
+				genre := genres[m.GenreIndex]
+
+				station, ok := radio.Choose(
+					radio.Criteria{
+						Genres: []string{
+							genre,
+						},
+					},
+					m.StationHistory,
+					radio.ChooseOptions{
+						RecentLimit: 3,
+					},
+				)
+				if !ok {
+					return m, nil
+				}
+
+				err := m.Player.Load(
+					station.StreamURL,
+				)
+				if err != nil {
+					return m, nil
+				}
+
+				m.GenrePickerOpen = false
+
+				return m, nil
+
+			}
+
+			return m, nil
+
+		}
 
 		if m.VibePickerOpen {
 
@@ -298,6 +366,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "m":
 			m.VibePickerOpen = true
 			m.VibeIndex = 0
+
+			return m, nil
+
+		case "g":
+			m.GenrePickerOpen = true
+			m.GenreIndex = 0
 
 			return m, nil
 
@@ -449,6 +523,16 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m model) View() string {
+
+	if m.GenrePickerOpen {
+
+		return ui.RenderGenrePicker(
+			radio.Genres(),
+			m.GenreIndex,
+			m.Width,
+		)
+
+	}
 
 	if m.VibePickerOpen {
 

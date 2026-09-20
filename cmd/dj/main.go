@@ -57,6 +57,8 @@ type model struct {
 	LyricsState        lyricsState
 	StationPickerOpen  bool
 	StationHistoryOpen bool
+	VibePickerOpen     bool
+	VibeIndex          int
 	StationIndex       int
 	CurrentStationID   string
 	StationHistory     radio.History
@@ -154,6 +156,66 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		key := msg.String()
 
+		if m.VibePickerOpen {
+
+			switch key {
+
+			case "esc":
+				m.VibePickerOpen = false
+				return m, nil
+
+			case "up", "k":
+
+				if m.VibeIndex > 0 {
+					m.VibeIndex--
+				}
+
+				return m, nil
+
+			case "down", "j":
+
+				if m.VibeIndex < len(radio.Presets)-1 {
+					m.VibeIndex++
+				}
+
+				return m, nil
+
+			case "enter":
+
+				if len(radio.Presets) == 0 {
+					return m, nil
+				}
+
+				preset := radio.Presets[m.VibeIndex]
+
+				station, ok := radio.Choose(
+					preset.Criteria,
+					m.StationHistory,
+					radio.ChooseOptions{
+						RecentLimit: 3,
+					},
+				)
+				if !ok {
+					return m, nil
+				}
+
+				err := m.Player.Load(
+					station.StreamURL,
+				)
+				if err != nil {
+					return m, nil
+				}
+
+				m.VibePickerOpen = false
+
+				return m, nil
+
+			}
+
+			return m, nil
+
+		}
+
 		if m.StationHistoryOpen {
 
 			switch key {
@@ -231,6 +293,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case "h":
 			m.StationHistoryOpen = true
+			return m, nil
+
+		case "m":
+			m.VibePickerOpen = true
+			m.VibeIndex = 0
+
 			return m, nil
 
 		}
@@ -381,6 +449,16 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m model) View() string {
+
+	if m.VibePickerOpen {
+
+		return ui.RenderVibePicker(
+			radio.Presets,
+			m.VibeIndex,
+			m.Width,
+		)
+
+	}
 
 	if m.StationHistoryOpen {
 

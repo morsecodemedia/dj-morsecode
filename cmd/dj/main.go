@@ -46,18 +46,20 @@ func (s lyricsState) String() string {
 }
 
 type model struct {
-	Width             int
-	Height            int
-	Song              music.Song
-	OnAir             bool
-	CurrentCue        int
-	Player            *player.Player
-	NowPlaying        string
-	LastTrack         string
-	LyricsState       lyricsState
-	StationPickerOpen bool
-	StationIndex      int
-	CurrentStationID  string
+	Width              int
+	Height             int
+	Song               music.Song
+	OnAir              bool
+	CurrentCue         int
+	Player             *player.Player
+	NowPlaying         string
+	LastTrack          string
+	LyricsState        lyricsState
+	StationPickerOpen  bool
+	StationHistoryOpen bool
+	StationIndex       int
+	CurrentStationID   string
+	StationHistory     radio.History
 }
 
 func (m model) CurrentStation() (*radio.Station, bool) {
@@ -152,6 +154,20 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		key := msg.String()
 
+		if m.StationHistoryOpen {
+
+			switch key {
+
+			case "esc", "h":
+				m.StationHistoryOpen = false
+				return m, nil
+
+			}
+
+			return m, nil
+
+		}
+
 		if m.StationPickerOpen {
 
 			switch key {
@@ -213,6 +229,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			return m, nil
 
+		case "h":
+			m.StationHistoryOpen = true
+			return m, nil
+
 		}
 
 	case tea.WindowSizeMsg:
@@ -242,9 +262,18 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		station, ok := radio.FindByStreamURL(path)
 
 		if ok {
+
 			m.CurrentStationID = station.ID
+
+			m.StationHistory.Add(
+				station.ID,
+				time.Now(),
+			)
+
 		} else {
+
 			m.CurrentStationID = ""
+
 		}
 
 		if !isNetwork {
@@ -352,6 +381,15 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m model) View() string {
+
+	if m.StationHistoryOpen {
+
+		return ui.RenderStationHistory(
+			m.StationHistory,
+			m.Width,
+		)
+
+	}
 
 	if m.StationPickerOpen {
 

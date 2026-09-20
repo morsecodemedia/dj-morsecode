@@ -77,6 +77,79 @@ func upcomingMarker() string {
 	return "·"
 }
 
+func RenderStationHistory(
+	history radio.History,
+	width int,
+) string {
+
+	if width == 0 {
+		width = 72
+	}
+
+	var s strings.Builder
+
+	s.WriteString(Divider(width))
+	s.WriteString("\n\n")
+
+	s.WriteString(Center(
+		Header.Render("STATION HISTORY"),
+		width,
+	))
+
+	s.WriteString("\n\n")
+	s.WriteString(Divider(width))
+	s.WriteString("\n\n")
+
+	if len(history.Tunes) == 0 {
+
+		s.WriteString(
+			Artist.Render("No stations tuned yet."),
+		)
+
+	} else {
+
+		for i := len(history.Tunes) - 1; i >= 0; i-- {
+
+			tune := history.Tunes[i]
+
+			station, ok := radio.Find(
+				tune.StationID,
+			)
+
+			name := tune.StationID
+
+			if ok {
+				name = station.Name
+			}
+
+			prefix := "  "
+
+			if i == len(history.Tunes)-1 {
+				prefix = "▶ "
+			}
+
+			s.WriteString(
+				Artist.Render(prefix + name),
+			)
+			s.WriteString("\n")
+
+		}
+
+	}
+
+	s.WriteString("\n")
+	s.WriteString(Divider(width))
+	s.WriteString("\n\n")
+
+	s.WriteString(Center(
+		Footer.Render("h or esc to return"),
+		width,
+	))
+
+	return s.String()
+
+}
+
 func RenderStationPicker(
 	stations []radio.Station,
 	selected int,

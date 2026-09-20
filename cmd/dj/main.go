@@ -66,6 +66,7 @@ type model struct {
 	StationIndex       int
 	CurrentStationID   string
 	StationHistory     radio.History
+	ActiveIntent       radio.Intent
 }
 
 func (m model) CurrentStation() (*radio.Station, bool) {
@@ -191,9 +192,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 
 				family := radio.MoodFamilies[m.MoodIndex]
+				intent := radio.MoodIntent(
+					family,
+				)
 
 				station, ok := radio.Choose(
-					family.Criteria(),
+					intent.Criteria,
 					m.StationHistory,
 					radio.ChooseOptions{
 						RecentLimit: 3,
@@ -210,6 +214,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return m, nil
 				}
 
+				m.ActiveIntent = intent
 				m.MoodPickerOpen = false
 
 				return m, nil
@@ -253,13 +258,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 
 				genre := genres[m.GenreIndex]
+				intent := radio.GenreIntent(
+					genre,
+				)
 
 				station, ok := radio.Choose(
-					radio.Criteria{
-						Genres: []string{
-							genre,
-						},
-					},
+					intent.Criteria,
 					m.StationHistory,
 					radio.ChooseOptions{
 						RecentLimit: 3,
@@ -276,6 +280,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return m, nil
 				}
 
+				m.ActiveIntent = intent
 				m.GenrePickerOpen = false
 
 				return m, nil
@@ -317,9 +322,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 
 				preset := radio.Presets[m.VibeIndex]
+				intent := radio.VibeIntent(
+					preset,
+				)
 
 				station, ok := radio.Choose(
-					preset.Criteria,
+					intent.Criteria,
 					m.StationHistory,
 					radio.ChooseOptions{
 						RecentLimit: 3,
@@ -336,6 +344,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return m, nil
 				}
 
+				m.ActiveIntent = intent
 				m.VibePickerOpen = false
 
 				return m, nil
@@ -642,7 +651,13 @@ func (m model) View() string {
 	}
 
 	stationName := ""
+	intentType := ""
+	intentName := ""
 
+	if m.ActiveIntent.Active() {
+		intentType = string(m.ActiveIntent.Type)
+		intentName = m.ActiveIntent.Name
+	}
 	if station, ok := m.CurrentStation(); ok {
 		stationName = station.Name
 	}
@@ -656,6 +671,8 @@ func (m model) View() string {
 		m.NowPlaying,
 		m.LyricsState.String(),
 		stationName,
+		intentType,
+		intentName,
 	)
 
 }

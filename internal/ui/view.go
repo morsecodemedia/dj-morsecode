@@ -435,6 +435,8 @@ func Render(
 	nowPlaying string,
 	lyricsStatus string,
 	stationName string,
+	intentType string,
+	intentName string,
 ) string {
 
 	if width == 0 {
@@ -475,6 +477,21 @@ func Render(
 
 		s.WriteString(
 			Album.Render("STATION • " + stationName),
+		)
+		s.WriteString("\n")
+
+	}
+
+	if intentName != "" {
+
+		label := strings.ToUpper(
+			intentType,
+		)
+
+		s.WriteString(
+			Album.Render(
+				label + " • " + intentName,
+			),
 		)
 		s.WriteString("\n")
 

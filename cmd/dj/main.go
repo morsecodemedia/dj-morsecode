@@ -94,6 +94,7 @@ func (m model) nextStation() model {
 		m.StationHistory,
 		radio.ChooseOptions{
 			RecentLimit: 3,
+			Chooser:     radio.RandomCandidate,
 		},
 	)
 	if !ok {
@@ -250,6 +251,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.StationHistory,
 					radio.ChooseOptions{
 						RecentLimit: 3,
+						Chooser:     radio.RandomCandidate,
 					},
 				)
 				if !ok {
@@ -316,6 +318,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.StationHistory,
 					radio.ChooseOptions{
 						RecentLimit: 3,
+						Chooser:     radio.RandomCandidate,
 					},
 				)
 				if !ok {
@@ -380,6 +383,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.StationHistory,
 					radio.ChooseOptions{
 						RecentLimit: 3,
+						Chooser:     radio.RandomCandidate,
 					},
 				)
 				if !ok {

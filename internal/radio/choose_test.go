@@ -150,3 +150,51 @@ func TestChooseNoMatchingStations(t *testing.T) {
 	}
 
 }
+
+func TestChooseUsesCandidateChooser(t *testing.T) {
+
+	chooseLast := func(
+		candidates []Station,
+	) (Station, bool) {
+
+		return candidates[len(candidates)-1], true
+
+	}
+
+	station, ok := Choose(
+		Criteria{
+			Contexts: []string{
+				"coding",
+			},
+			MaxEnergy: 2,
+		},
+		History{},
+		ChooseOptions{
+			RecentLimit: 3,
+			Chooser:     chooseLast,
+		},
+	)
+	if !ok {
+		t.Fatal("expected station choice")
+	}
+
+	matches := Match(
+		Criteria{
+			Contexts: []string{
+				"coding",
+			},
+			MaxEnergy: 2,
+		},
+	)
+
+	expected := matches[len(matches)-1]
+
+	if station.ID != expected.ID {
+		t.Errorf(
+			"expected station %q, got %q",
+			expected.ID,
+			station.ID,
+		)
+	}
+
+}

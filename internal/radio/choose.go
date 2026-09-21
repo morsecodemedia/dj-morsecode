@@ -2,6 +2,7 @@ package radio
 
 type ChooseOptions struct {
 	RecentLimit int
+	Chooser     CandidateChooser
 }
 
 func Choose(
@@ -28,12 +29,13 @@ func Choose(
 			hasCurrent,
 		)
 
-		station, ok := Select(
+		station, ok := SelectWithChooser(
 			filtered,
 			history,
 			SelectionOptions{
 				RecentLimit: recentLimit,
 			},
+			options.Chooser,
 		)
 		if ok {
 			return station, true

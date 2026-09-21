@@ -140,3 +140,14 @@ func (p *Player) IsNetwork() bool {
 	return network
 
 }
+
+func (p *Player) IsIdle() bool {
+
+	idle, err := p.client.CoreIdle()
+	if err != nil {
+		return false
+	}
+
+	return idle
+
+}

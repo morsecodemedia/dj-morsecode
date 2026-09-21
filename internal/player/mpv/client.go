@@ -185,6 +185,14 @@ func (c *Client) DemuxerViaNetwork() (bool, error) {
 
 }
 
+func (c *Client) CoreIdle() (bool, error) {
+
+	return c.boolProperty(
+		"core-idle",
+	)
+
+}
+
 func (c *Client) Load(path string) error {
 
 	return c.loadFile(path)

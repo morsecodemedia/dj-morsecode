@@ -19,6 +19,7 @@ import (
 type lyricsState int
 
 const stationRotationInterval = 30 * time.Minute
+const stationTuneGracePeriod = 15 * time.Second
 
 const (
 	lyricsUnavailable lyricsState = iota
@@ -69,6 +70,8 @@ type model struct {
 	CurrentStationID   string
 	StationHistory     radio.History
 	ActiveIntent       radio.Intent
+	PendingStationID   string
+	PendingSince       time.Time
 }
 
 func (m model) CurrentStation() (*radio.Station, bool) {
@@ -107,6 +110,9 @@ func (m model) nextStation() model {
 	if err != nil {
 		return m
 	}
+
+	m.PendingStationID = station.ID
+	m.PendingSince = time.Now()
 
 	return m
 
@@ -265,6 +271,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return m, nil
 				}
 
+				m.PendingStationID = station.ID
+				m.PendingSince = time.Now()
+
 				m.ActiveIntent = intent
 				m.MoodPickerOpen = false
 
@@ -332,6 +341,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return m, nil
 				}
 
+				m.PendingStationID = station.ID
+				m.PendingSince = time.Now()
+
 				m.ActiveIntent = intent
 				m.GenrePickerOpen = false
 
@@ -397,6 +409,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return m, nil
 				}
 
+				m.PendingStationID = station.ID
+				m.PendingSince = time.Now()
+
 				m.ActiveIntent = intent
 				m.VibePickerOpen = false
 
@@ -442,6 +457,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 
 				m.ActiveIntent = radio.Intent{}
+				m.PendingStationID = ""
+				m.PendingSince = time.Time{}
 				m.StationPickerOpen = false
 
 				return m, nil
@@ -546,6 +563,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				station.ID,
 				time.Now(),
 			)
+
+			if station.ID == m.PendingStationID &&
+				!m.Player.IsIdle() {
+
+				m.PendingStationID = ""
+				m.PendingSince = time.Time{}
+
+			}
 
 		} else {
 
@@ -668,6 +693,20 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m model) View() string {
+
+	if m.PendingStationID != "" {
+
+		elapsed := time.Since(
+			m.PendingSince,
+		).Round(time.Second)
+
+		return fmt.Sprintf(
+			"PENDING • %s • %s\n",
+			m.PendingStationID,
+			elapsed,
+		)
+
+	}
 
 	if m.MoodPickerOpen {
 

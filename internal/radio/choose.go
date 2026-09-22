@@ -3,6 +3,7 @@ package radio
 type ChooseOptions struct {
 	RecentLimit int
 	Chooser     CandidateChooser
+	ExcludeIDs  []string
 }
 
 func Choose(
@@ -13,6 +14,11 @@ func Choose(
 
 	candidates := Match(
 		criteria,
+	)
+
+	candidates = excludeStations(
+		candidates,
+		options.ExcludeIDs,
 	)
 
 	if len(candidates) == 0 {
@@ -62,6 +68,40 @@ func excludeCurrent(
 	for _, station := range stations {
 
 		if station.ID == current.StationID {
+			continue
+		}
+
+		filtered = append(
+			filtered,
+			station,
+		)
+
+	}
+
+	return filtered
+
+}
+
+func excludeStations(
+	stations []Station,
+	excludeIDs []string,
+) []Station {
+
+	if len(excludeIDs) == 0 {
+		return stations
+	}
+
+	excluded := make(map[string]bool)
+
+	for _, id := range excludeIDs {
+		excluded[id] = true
+	}
+
+	var filtered []Station
+
+	for _, station := range stations {
+
+		if excluded[station.ID] {
 			continue
 		}
 

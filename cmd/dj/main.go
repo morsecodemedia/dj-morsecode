@@ -72,6 +72,7 @@ type model struct {
 	ActiveIntent       radio.Intent
 	PendingStationID   string
 	PendingSince       time.Time
+	FailedStationIDs   []string
 }
 
 func (m model) CurrentStation() (*radio.Station, bool) {
@@ -83,6 +84,31 @@ func (m model) CurrentStation() (*radio.Station, bool) {
 	return radio.Find(
 		m.CurrentStationID,
 	)
+
+}
+
+func (m model) failStation(
+	stationID string,
+) model {
+
+	if stationID == "" {
+		return m
+	}
+
+	for _, id := range m.FailedStationIDs {
+
+		if id == stationID {
+			return m
+		}
+
+	}
+
+	m.FailedStationIDs = append(
+		m.FailedStationIDs,
+		stationID,
+	)
+
+	return m
 
 }
 
@@ -98,6 +124,7 @@ func (m model) nextStation() model {
 		radio.ChooseOptions{
 			RecentLimit: 3,
 			Chooser:     radio.RandomCandidate,
+			ExcludeIDs:  m.FailedStationIDs,
 		},
 	)
 	if !ok {
@@ -251,13 +278,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				intent := radio.MoodIntent(
 					family,
 				)
-
+				m.FailedStationIDs = nil
 				station, ok := radio.Choose(
 					intent.Criteria,
 					m.StationHistory,
 					radio.ChooseOptions{
 						RecentLimit: 3,
 						Chooser:     radio.RandomCandidate,
+						ExcludeIDs:  m.FailedStationIDs,
 					},
 				)
 				if !ok {
@@ -321,13 +349,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				intent := radio.GenreIntent(
 					genre,
 				)
-
+				m.FailedStationIDs = nil
 				station, ok := radio.Choose(
 					intent.Criteria,
 					m.StationHistory,
 					radio.ChooseOptions{
 						RecentLimit: 3,
 						Chooser:     radio.RandomCandidate,
+						ExcludeIDs:  m.FailedStationIDs,
 					},
 				)
 				if !ok {
@@ -389,13 +418,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				intent := radio.VibeIntent(
 					preset,
 				)
-
+				m.FailedStationIDs = nil
 				station, ok := radio.Choose(
 					intent.Criteria,
 					m.StationHistory,
 					radio.ChooseOptions{
 						RecentLimit: 3,
 						Chooser:     radio.RandomCandidate,
+						ExcludeIDs:  m.FailedStationIDs,
 					},
 				)
 				if !ok {
@@ -460,6 +490,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.PendingStationID = ""
 				m.PendingSince = time.Time{}
 				m.StationPickerOpen = false
+				m.FailedStationIDs = nil
 
 				return m, nil
 
@@ -557,15 +588,21 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		if ok {
 
+			idle := m.Player.IsIdle()
+
 			m.CurrentStationID = station.ID
 
-			m.StationHistory.Add(
-				station.ID,
-				time.Now(),
-			)
+			if !idle {
+
+				m.StationHistory.Add(
+					station.ID,
+					time.Now(),
+				)
+
+			}
 
 			if station.ID == m.PendingStationID &&
-				!m.Player.IsIdle() {
+				!idle {
 
 				m.PendingStationID = ""
 				m.PendingSince = time.Time{}
@@ -575,6 +612,26 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		} else {
 
 			m.CurrentStationID = ""
+
+		}
+
+		if m.PendingStationID != "" &&
+			!m.PendingSince.IsZero() &&
+			time.Since(m.PendingSince) >= stationTuneGracePeriod &&
+			m.Player.IsIdle() {
+
+			failedStationID := m.PendingStationID
+
+			m.PendingStationID = ""
+			m.PendingSince = time.Time{}
+
+			m = m.failStation(
+				failedStationID,
+			)
+
+			m = m.nextStation()
+
+			return m, tick()
 
 		}
 
@@ -693,20 +750,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m model) View() string {
-
-	if m.PendingStationID != "" {
-
-		elapsed := time.Since(
-			m.PendingSince,
-		).Round(time.Second)
-
-		return fmt.Sprintf(
-			"PENDING • %s • %s\n",
-			m.PendingStationID,
-			elapsed,
-		)
-
-	}
 
 	if m.MoodPickerOpen {
 

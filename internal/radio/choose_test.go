@@ -198,3 +198,29 @@ func TestChooseUsesCandidateChooser(t *testing.T) {
 	}
 
 }
+
+func TestChooseExcludesStations(t *testing.T) {
+
+	station, ok := Choose(
+		Criteria{
+			Genres: []string{
+				"Trance",
+			},
+		},
+		History{},
+		ChooseOptions{
+			RecentLimit: 3,
+			ExcludeIDs: []string{
+				"afterhoursfm",
+			},
+		},
+	)
+	if !ok {
+		t.Fatal("expected station choice")
+	}
+
+	if station.ID == "afterhoursfm" {
+		t.Fatal("expected excluded station not to be chosen")
+	}
+
+}

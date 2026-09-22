@@ -426,6 +426,94 @@ func RenderStationPicker(
 
 }
 
+func RenderIdle(
+	width int,
+) string {
+
+	if width == 0 {
+		width = 72
+	}
+
+	var s strings.Builder
+
+	s.WriteString(Divider(width))
+	s.WriteString("\n\n")
+
+	s.WriteString(Center(
+		Header.Render("DJ MORSECODE"),
+		width,
+	))
+
+	s.WriteString("\n")
+
+	s.WriteString(Center(
+		Subtitle.Render("The DJ that quietly codes with you."),
+		width,
+	))
+
+	s.WriteString("\n\n")
+	s.WriteString(Divider(width))
+	s.WriteString("\n\n")
+
+	s.WriteString(Center(
+		Section.Render("○ STANDING BY"),
+		width,
+	))
+
+	s.WriteString("\n\n")
+
+	s.WriteString(Center(
+		Title.Render("What are we listening to?"),
+		width,
+	))
+
+	s.WriteString("\n\n")
+
+	s.WriteString(Center(
+		Artist.Render("v  Pick a vibe"),
+		width,
+	))
+	s.WriteString("\n\n")
+
+	s.WriteString(Center(
+		Artist.Render("m  Set a mood"),
+		width,
+	))
+	s.WriteString("\n\n")
+
+	s.WriteString(Center(
+		Artist.Render("g  Choose a genre"),
+		width,
+	))
+	s.WriteString("\n\n")
+
+	s.WriteString(Center(
+		Artist.Render("s  Tune a station"),
+		width,
+	))
+
+	s.WriteString("\n\n")
+
+	s.WriteString(Center(
+		Subtitle.Render("DJ MorseCode is ready when you are."),
+		width,
+	))
+
+	s.WriteString("\n\n")
+	s.WriteString(Divider(width))
+	s.WriteString("\n\n")
+
+	s.WriteString(Center(
+		Footer.Render(
+			"s stations • v vibes • m moods • g genres • h history • q sign off",
+		),
+		width,
+	))
+
+	return s.String()
+
+}
+
 func Render(
 	song music.Song,
 	width int,

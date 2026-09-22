@@ -8,7 +8,6 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/morsecodemedia/dj-morsecode/internal/library"
 	"github.com/morsecodemedia/dj-morsecode/internal/lrclib"
-	"github.com/morsecodemedia/dj-morsecode/internal/lyrics"
 	"github.com/morsecodemedia/dj-morsecode/internal/metadata"
 	"github.com/morsecodemedia/dj-morsecode/internal/music"
 	"github.com/morsecodemedia/dj-morsecode/internal/player"
@@ -802,6 +801,15 @@ func (m model) View() string {
 
 	}
 
+	if m.NowPlaying == "" &&
+		m.CurrentStationID == "" {
+
+		return ui.RenderIdle(
+			m.Width,
+		)
+
+	}
+
 	stationName := ""
 	intentType := ""
 	intentName := ""
@@ -830,16 +838,6 @@ func (m model) View() string {
 }
 
 func main() {
-
-	song, err := lyrics.LoadSong(
-		"assets/interstate-love-song.lrc",
-	)
-	if err != nil {
-
-		fmt.Println(err)
-		os.Exit(1)
-
-	}
 
 	mpvProcess := mpv.NewProcess(
 		mpvSocketPath,
@@ -897,7 +895,6 @@ func main() {
 	}
 
 	p := tea.NewProgram(model{
-		Song:   song,
 		Player: playback,
 	})
 

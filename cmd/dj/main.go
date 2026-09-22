@@ -12,12 +12,14 @@ import (
 	"github.com/morsecodemedia/dj-morsecode/internal/metadata"
 	"github.com/morsecodemedia/dj-morsecode/internal/music"
 	"github.com/morsecodemedia/dj-morsecode/internal/player"
+	"github.com/morsecodemedia/dj-morsecode/internal/player/mpv"
 	"github.com/morsecodemedia/dj-morsecode/internal/radio"
 	"github.com/morsecodemedia/dj-morsecode/internal/ui"
 )
 
 type lyricsState int
 
+const mpvSocketPath = "/tmp/dj-morsecode.sock"
 const stationRotationInterval = 30 * time.Minute
 const stationTuneGracePeriod = 15 * time.Second
 
@@ -839,9 +841,59 @@ func main() {
 
 	}
 
-	playback, err := player.New("/tmp/dj-morsecode.sock")
+	mpvProcess := mpv.NewProcess(
+		mpvSocketPath,
+	)
+
+	if err := mpvProcess.Start(); err != nil {
+
+		fmt.Println(
+			"Unable to summon MPV:",
+			err,
+		)
+
+		os.Exit(1)
+
+	}
+
+	if err := mpvProcess.WaitReady(); err != nil {
+
+		_ = mpvProcess.Stop()
+
+		fmt.Println(
+			"MPV failed to answer the call:",
+			err,
+		)
+
+		os.Exit(1)
+
+	}
+
+	defer func() {
+
+		if err := mpvProcess.Stop(); err != nil {
+
+			fmt.Println(
+				"Unable to stop MPV:",
+				err,
+			)
+
+		}
+
+	}()
+
+	playback, err := player.New(
+		mpvSocketPath,
+	)
 	if err != nil {
-		panic(err)
+
+		fmt.Println(
+			"Unable to connect to MPV:",
+			err,
+		)
+
+		return
+
 	}
 
 	p := tea.NewProgram(model{

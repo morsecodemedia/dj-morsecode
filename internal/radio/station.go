@@ -496,7 +496,7 @@ var Stations = []Station{
 	{
 		ID:        "afterhoursfm",
 		Name:      "After Hours FM",
-		StreamURL: "http://nl.ah.fm:8000/live",
+		StreamURL: "https://us.ah.fm/live",
 		Homepage:  "https://ah.fm/",
 		Genre:     "Trance",
 		Tags: []string{

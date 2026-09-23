@@ -6,13 +6,32 @@ func Normalize(
 	fields map[string]string,
 ) PlaybackItem {
 
-	if isIHeartMetadata(
+	source := DetectSource(
 		fields,
-	) {
+	)
+
+	switch source {
+
+	case SourceIHeart:
 
 		return normalizeIHeart(
 			fields,
 		)
+
+	case SourceLautFM:
+
+		return normalizeLautFM(
+			fields,
+		)
+
+	case SourceWXPN,
+		SourceAfterHoursFM:
+
+		return PlaybackItem{
+			Type:         PlaybackUnknown,
+			RawTitle:     metadataTitle(fields),
+			SourceFields: fields,
+		}
 
 	}
 

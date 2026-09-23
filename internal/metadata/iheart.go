@@ -10,17 +10,6 @@ var iheartFieldPattern = regexp.MustCompile(
 	`([A-Za-z][A-Za-z0-9_]*)="([^"]*)"`,
 )
 
-func isIHeartMetadata(
-	fields map[string]string,
-) bool {
-
-	return strings.Contains(
-		strings.ToLower(fields["icy-url"]),
-		"iheartradio.com",
-	)
-
-}
-
 func normalizeIHeart(
 	fields map[string]string,
 ) PlaybackItem {

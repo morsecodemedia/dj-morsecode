@@ -321,3 +321,7 @@ The v1 feature set includes:
 - tmux-friendly terminal UI
 
 Future directions live in [ROADMAP.md](ROADMAP.md).
+
+## License
+
+DJ MorseCode is available under the [MIT License](LICENSE).

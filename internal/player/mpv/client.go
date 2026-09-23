@@ -27,6 +27,11 @@ type boolResponse struct {
 	Error string `json:"error"`
 }
 
+type metadataResponse struct {
+	Data  map[string]string `json:"data"`
+	Error string            `json:"error"`
+}
+
 func Connect(socket string) (*Client, error) {
 
 	conn, err := net.Dial("unix", socket)
@@ -177,6 +182,37 @@ func (c *Client) boolProperty(
 
 }
 
+func (c *Client) metadataProperty(
+	property string,
+) (map[string]string, error) {
+
+	data, err := c.command(property)
+	if err != nil {
+		return nil, err
+	}
+
+	var response metadataResponse
+
+	if err := json.Unmarshal(
+		data,
+		&response,
+	); err != nil {
+
+		return nil, err
+	}
+
+	if response.Error != "success" {
+		return nil, fmt.Errorf(
+			"mpv property %q failed: %s",
+			property,
+			response.Error,
+		)
+	}
+
+	return response.Data, nil
+
+}
+
 func (c *Client) DemuxerViaNetwork() (bool, error) {
 
 	return c.boolProperty(
@@ -209,6 +245,14 @@ func (c *Client) Artist() (string, error) {
 
 func (c *Client) Title() (string, error) {
 	return c.stringProperty("metadata/by-key/title")
+}
+
+func (c *Client) Metadata() (map[string]string, error) {
+
+	return c.metadataProperty(
+		"metadata",
+	)
+
 }
 
 func (c *Client) Album() (string, error) {

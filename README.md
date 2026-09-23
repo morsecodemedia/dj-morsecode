@@ -1,40 +1,6 @@
 # DJ MorseCode
 
-> "The DJ that quietly codes with you."
-
----
-
-## Overview
-
-DJ MorseCode is not a music player.
-
-It is not another streaming service.
-
-It is not another playlist manager.
-
-DJ MorseCode is a coding companion.
-
-It recreates the feeling of late-night terrestrial radio—where you never quite knew what song was coming next—but removes everything that got in the way.
-
-No twenty-minute commercial breaks.
-
-No DJs talking over the intro.
-
-No endlessly replaying the same twenty songs.
-
-Just music.
-
-Just discovery.
-
-Just flow.
-
----
-
-## The Feeling
-
-I grew up waiting beside the radio with a cassette recorder.
-
-When the DJ finally played *that* song, you hit RECORD and hoped they wouldn't talk over the intro.
+**A terminal DJ for continuous musical discovery.**
 
 There was something magical about never knowing what came next.
 
@@ -43,8 +9,6 @@ Modern streaming services optimize for control.
 DJ MorseCode optimizes for discovery.
 
 It should feel like sitting beside a great late-night radio DJ that somehow always understands your mood.
-
----
 
 ## Philosophy
 
@@ -56,15 +20,11 @@ You shouldn't think about playlists.
 
 You shouldn't think about albums.
 
-You shouldn't even think about songs.
+You shouldn't even have to think about songs.
 
 You think about a feeling.
 
 DJ MorseCode handles the rest.
-
----
-
-## Core Principles
 
 ### Continuous Discovery
 
@@ -72,29 +32,15 @@ Every song should feel like it belongs.
 
 Every song should also feel like a pleasant surprise.
 
----
-
 ### Infinite Radio
 
-Music never stops.
-
-No playlist management.
-
-No queue management.
-
-No decision fatigue.
+Music keeps moving without playlist management, queue management, or decision fatigue.
 
 You get what you get.
 
-If you're not feeling it...
+If you're not feeling it, move on.
 
-Skip.
-
-If it hits...
-
-Enjoy the ride.
-
----
+If it hits, enjoy the ride.
 
 ### Ambient Companion
 
@@ -104,278 +50,274 @@ It quietly enhances your workspace.
 
 It should feel like another pane in tmux rather than another application.
 
----
-
 ### Joy
 
 Every feature should make someone smile.
 
 ---
 
-# Version 0.1
+## What DJ MorseCode Does
 
-The smallest useful version.
+DJ MorseCode is a terminal-based radio companion that turns listening intent into continuous music.
 
-Features
+Instead of building playlists, choose how you want to listen:
 
-- Display currently playing song
-- Display synchronized lyrics
-- Karaoke-style highlighting
-- Optimized for tmux
-- Minimal distractions
+- **Vibes** describe the session: Focus, Discovery, Energy, or Wind Down.
+- **Moods** describe how the music should feel.
+- **Genres** describe the musical neighborhood.
+- **Stations** let you take direct control when you already know what you want.
 
-Nothing else.
+DJ MorseCode selects an appropriate internet radio station, remembers where it has been, introduces variety, rotates stations during programmed sessions, and recovers from failed streams without abandoning the listening intent.
 
-Ship it.
+MPV handles audio playback while DJ MorseCode handles the programming.
 
----
+## Quick Start
 
-# Version 0.2
+### Requirements
 
-Music Context
+DJ MorseCode currently requires:
 
-Display
+- Go 1.26.5
+- mpv
+- A terminal with Unicode and color support
+- Internet access for radio streams and remote lyric retrieval
 
-- Artist
-- Album
-- Year
+The currently tested mpv version is 0.41.0.
+
+On macOS with Homebrew:
+
+```bash
+brew install mpv
+```
+
+### Run
+
+Clone the repository and start DJ MorseCode:
+
+```bash
+git clone git@github.com:morsecodemedia/dj-morsecode.git
+cd dj-morsecode
+go run ./cmd/dj
+```
+
+That's it.
+
+DJ MorseCode starts and manages its own idle mpv process. You do not need to launch mpv separately.
+
+When DJ MorseCode exits normally, it also shuts down the mpv process and removes its IPC socket.
+
+## Controls
+
+| Key | Action |
+| --- | --- |
+| `s` | Choose a station |
+| `v` | Choose a vibe |
+| `m` | Choose a mood |
+| `g` | Choose a genre |
+| `n` | Choose the next station within the active session |
+| `h` | View station history |
+| `q` | Sign off |
+| `Ctrl-C` | Sign off |
+| `↑` / `↓` | Navigate a picker |
+| `j` / `k` | Navigate a picker |
+| `Enter` | Select |
+| `Esc` | Close a picker |
+
+`n` only has meaning during an active vibe, mood, or genre session. Choosing a station manually with `s` ends the active programmed session and returns control to you.
+
+## Listening Modes
+
+### Vibes
+
+Vibes describe what you're doing rather than prescribing a genre.
+
+Current presets include:
+
+- **Focus**
+- **Discovery**
+- **Energy**
+- **Wind Down**
+
+A vibe becomes the active session intent. DJ MorseCode continues programming within that intent until you select something else or manually tune a station.
+
+### Moods
+
+Moods describe how the session should feel.
+
+DJ MorseCode groups its richer station metadata into human-friendly mood families such as:
+
+- Calm
+- Dreamy
+- Energetic
+- Uplifting
+- Adventurous
+- Edgy
+- Nostalgic
+- Playful
+- Thoughtful
+
+### Genres
+
+Genres are derived dynamically from the curated station catalog.
+
+Adding a station with a new genre automatically makes that genre available to the genre picker.
+
+### Stations
+
+The station picker provides direct access to the curated radio catalog.
+
+Manual station selection clears any active vibe, mood, or genre intent. From that point DJ MorseCode stays on the station you chose until you make another selection.
+
+## Autonomous Sessions
+
+Vibe, mood, and genre selections create an active session intent.
+
+During an active session, DJ MorseCode:
+
+1. Finds stations matching the requested criteria.
+2. Avoids the currently playing and recently tuned stations when possible.
+3. Introduces controlled variety among eligible stations.
+4. Remembers successful station transitions.
+5. Rotates to another appropriate station after the configured dwell interval.
+6. Preserves the original listening intent across rotations.
+
+Press `n` to trigger the same rotation behavior manually.
+
+### Stream Recovery
+
+Internet radio is messy.
+
+Streams disappear, stall, redirect, buffer, and occasionally just decide today is not their day.
+
+DJ MorseCode gives an intent-driven station time to establish playback. If the stream remains idle beyond the grace period, that station is excluded for the current session and DJ MorseCode selects another station satisfying the same intent.
+
+Failed tune attempts are not added to listening history.
+
+## Lyrics
+
+DJ MorseCode supports synchronized lyric timelines when lyrics are available.
+
+The current lyric path includes:
+
+- locally cached lyrics
+- LRCLIB lookup
+- persistent LRCLIB results in the DJ MorseCode cache
+
+Lyrics are enrichment, not a playback requirement. Missing lyrics never prevent the music from continuing.
+
+## Station Intelligence
+
+Stations carry semantic metadata used by the selection engine:
+
 - Genre
-- Elapsed Time
-
----
-
-# Version 0.3
-
-DJ Notes
-
-Inspired by VH1 Pop-Up Video.
-
-Occasionally display tiny contextual facts.
-
-Examples
-
-> This guitar solo was recorded in one take.
-
-> This band originally opened for Soundgarden.
-
-> You've listened to this song 37 times.
-
-> Last played eight months ago.
-
-These disappear automatically after a few seconds.
-
-No interruptions.
-
-No walls of text.
-
----
-
-# Version 0.4
-
-Station Controls
-
-Instead of technical controls...
-
-Think like a DJ.
-
-Examples
-
-Keep Cookin'
-
-Continue the current vibe.
-
----
-
-Surprise Me
-
-Take an unexpected turn without breaking the mood.
-
----
-
-Go Deeper
-
-Less popular tracks.
-
-B-sides.
-
-Deep cuts.
-
----
-
-Take Me Sideways
-
-Same energy.
-
-Different genre.
-
----
-
-Cool It Down
-
-Reduce intensity.
-
----
-
-Go Harder
-
-Increase intensity.
-
----
-
-Encore
-
-Stay in this musical neighborhood.
-
-Not replay.
-
-Continue the feeling.
-
----
-
-# Version 0.5
-
-Playback Adapters
-
-Playback should never be tied to one platform.
-
-Possible adapters include
-
-- Pandora
-- Spotify
-- Apple Music
-- YouTube Music
-- Jellyfin
-- Navidrome
-- Local Library
-
-The renderer should not know where the music came from.
-
-It only knows what is currently playing.
-
----
-
-# Lyrics Providers
-
-Lyrics should be provider-agnostic.
-
-Preferred format:
-
-Timed lyrics (LRC or equivalent)
-
-Renderer responsibilities
-
-- Previous line
-- Current highlighted line
-- Next line
-
-Always centered.
-
-Never scrolling walls of text.
-
----
-
-# Renderer
-
-Designed specifically for developers.
-
-tmux first.
-
-Terminal first.
-
-Keyboard first.
-
-Everything else is secondary.
-
----
-
-Example
-
-────────────────────────────────────────────
-
-♫ Interstate Love Song
-
-Stone Temple Pilots
-
-Alternative • 1994
-
-────────────────────────────────────────────
-
-      Leaving on a southern train...
-
-████████████ Only yesterday you lied...
-
-      Promises of what I seemed...
-
-────────────────────────────────────────────
-
-DJ NOTE
-
-This song was recorded in one take.
-
-────────────────────────────────────────────
-
----
-
-# Future
-
-Mood Engine
-
-Instead of choosing playlists...
-
-Choose feelings.
-
-Examples
-
-Late-night coding
-
-Progressive rabbit hole
-
-Forgotten 90s alternative
-
-Dark synthwave
-
-Jazz while debugging
-
-Sunday morning coffee
-
-Coding through a thunderstorm
-
-The DJ builds the station.
-
----
-
-# Long-Term Vision
-
-DJ MorseCode is not trying to replace Spotify.
-
-It isn't trying to replace Pandora.
-
-It isn't trying to replace radio.
-
-It's trying to recreate something we've quietly lost.
-
-The joy of discovery.
-
-The comfort of an excellent DJ.
-
-The feeling that someone else is curating the soundtrack while you disappear into your work.
-
----
-
-# One Design Rule
-
-Every feature must answer one question.
-
-> Does this make coding more enjoyable?
-
-If the answer is no...
-
-It doesn't belong.
-
----
-
-# Motto
-
-Don't build a music player.
-
-Build the DJ that quietly codes with you.
+- Tags
+- Moods
+- Contexts
+- Energy
+
+Matching determines which stations are appropriate for an intent.
+
+Selection then considers session history and failed stations before choosing among eligible candidates.
+
+This keeps the decision process deterministic where rules matter and varied where multiple answers are equally valid.
+
+## Architecture
+
+At a high level:
+
+```text
+                     ┌──────────────┐
+                     │ User Intent  │
+                     │ vibe / mood  │
+                     │ genre        │
+                     └──────┬───────┘
+                            │
+                            ▼
+                       Criteria
+                            │
+                            ▼
+                     Station Match
+                            │
+                            ▼
+                History / Failure Filters
+                            │
+                            ▼
+                    Candidate Selection
+                            │
+                            ▼
+                         Station
+                            │
+                            ▼
+                      Player.Load()
+                            │
+                            ▼
+                           mpv
+                            │
+                            ▼
+                         Audio
+```
+
+DJ MorseCode owns session intent and programming decisions.
+
+mpv owns media transport and audio playback.
+
+Bubble Tea owns the terminal interaction model.
+
+## Development
+
+Format:
+
+```bash
+gofmt -w ./cmd ./internal
+```
+
+Test:
+
+```bash
+go test ./...
+```
+
+Vet:
+
+```bash
+go vet ./...
+```
+
+Release sanity check:
+
+```bash
+go test ./...
+go vet ./...
+git diff --check
+```
+
+Run:
+
+```bash
+go run ./cmd/dj
+```
+
+## Project Status
+
+DJ MorseCode v1 focuses on the smallest complete listening experience:
+
+> Start the application, describe what you want to hear, and let the DJ handle the rest.
+
+The v1 feature set includes:
+
+- managed mpv lifecycle
+- curated internet radio
+- direct station tuning
+- vibe-based programming
+- mood-based programming
+- genre-based programming
+- persistent session intent
+- history-aware station selection
+- controlled selection variety
+- manual and automatic station rotation
+- failed-stream recovery
+- synchronized lyric support
+- persistent lyric caching
+- tmux-friendly terminal UI
+
+Future directions live in [ROADMAP.md](ROADMAP.md).

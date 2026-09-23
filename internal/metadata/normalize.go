@@ -6,6 +6,16 @@ func Normalize(
 	fields map[string]string,
 ) PlaybackItem {
 
+	if isIHeartMetadata(
+		fields,
+	) {
+
+		return normalizeIHeart(
+			fields,
+		)
+
+	}
+
 	rawTitle := metadataTitle(
 		fields,
 	)

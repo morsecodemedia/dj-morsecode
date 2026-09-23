@@ -58,6 +58,7 @@ type model struct {
 	Player             *player.Player
 	NowPlaying         string
 	LastTrack          string
+	PlaybackItem       metadata.PlaybackItem
 	LyricsState        lyricsState
 	StationPickerOpen  bool
 	StationHistoryOpen bool
@@ -108,6 +109,19 @@ func (m model) failStation(
 		m.FailedStationIDs,
 		stationID,
 	)
+
+	return m
+
+}
+
+func (m model) clearTrackState() model {
+
+	m.NowPlaying = ""
+	m.LastTrack = ""
+
+	m.Song = music.Song{}
+	m.CurrentCue = 0
+	m.LyricsState = lyricsUnavailable
 
 	return m
 
@@ -583,15 +597,91 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		trackID := m.Player.TrackID()
 		path := m.Player.Path()
 		isNetwork := m.Player.IsNetwork()
-		track := metadata.Resolve(rawTitle)
 
-		station, ok := radio.FindByStreamURL(path)
+		station, stationFound := radio.FindByStreamURL(
+			path,
+		)
 
-		if ok {
+		stationChanged := false
 
-			idle := m.Player.IsIdle()
+		if stationFound {
+
+			stationChanged =
+				m.CurrentStationID != "" &&
+					m.CurrentStationID != station.ID
+
+			if stationChanged {
+
+				m.PlaybackItem = metadata.PlaybackItem{}
+				m = m.clearTrackState()
+
+			}
 
 			m.CurrentStationID = station.ID
+
+		} else {
+
+			if m.CurrentStationID != "" {
+
+				m.PlaybackItem = metadata.PlaybackItem{}
+				m = m.clearTrackState()
+
+			}
+
+			m.CurrentStationID = ""
+
+		}
+
+		track := metadata.Resolve(
+			rawTitle,
+		)
+
+		if isNetwork {
+
+			observedItem := metadata.Normalize(
+				m.Player.Metadata(),
+			)
+
+			if observedItem.Observed() {
+
+				m.PlaybackItem = observedItem
+
+			}
+
+			if m.PlaybackItem.IsTrack() {
+
+				track.RawTitle = m.PlaybackItem.RawTitle
+				track.Artist = m.PlaybackItem.Artist
+				track.Title = m.PlaybackItem.Title
+				track.Valid = true
+
+				album = m.PlaybackItem.Album
+
+				if m.PlaybackItem.Duration > 0 {
+					duration = m.PlaybackItem.Duration
+				}
+
+				trackID = path +
+					"\x00" +
+					m.PlaybackItem.Artist +
+					"\x00" +
+					m.PlaybackItem.Title
+
+			} else {
+
+				track.Valid = false
+
+			}
+
+		} else {
+
+			m.PlaybackItem = metadata.PlaybackItem{}
+
+		}
+
+		if stationFound {
+
+			idle := m.Player.IsIdle()
 
 			if !idle {
 
@@ -609,10 +699,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.PendingSince = time.Time{}
 
 			}
-
-		} else {
-
-			m.CurrentStationID = ""
 
 		}
 
@@ -656,13 +742,30 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		}
 
+		if isNetwork &&
+			!m.PlaybackItem.IsTrack() {
+
+			m = m.clearTrackState()
+
+			return m, tick()
+
+		}
+
 		if track.RawTitle == "" {
 			return m, tick()
 		}
 
 		if track.Valid {
 
-			m.NowPlaying = track.RawTitle
+			if isNetwork {
+
+				m.NowPlaying = m.PlaybackItem.DisplayTitle()
+
+			} else {
+
+				m.NowPlaying = track.RawTitle
+
+			}
 
 			if trackID != m.LastTrack {
 

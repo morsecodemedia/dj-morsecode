@@ -108,6 +108,17 @@ func (p *Player) Album() string {
 
 }
 
+func (p *Player) Metadata() map[string]string {
+
+	metadata, err := p.client.Metadata()
+	if err != nil {
+		return nil
+	}
+
+	return metadata
+
+}
+
 func (p *Player) Position() time.Duration {
 
 	position, err := p.client.PlaybackTime()

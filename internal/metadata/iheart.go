@@ -56,6 +56,35 @@ func normalizeIHeart(
 
 		}
 
+	case "F":
+
+		artist := strings.TrimSpace(
+			values["artist"],
+		)
+
+		title := strings.TrimSpace(
+			values["title"],
+		)
+
+		if artist == "" ||
+			title == "" {
+
+			return item
+
+		}
+
+		item.Type = PlaybackTrack
+		item.Artist = artist
+		item.Title = title
+
+		if duration, ok := parseIHeartDuration(
+			values["length"],
+		); ok {
+
+			item.Duration = duration
+
+		}
+
 	case "T":
 
 		item.Type = PlaybackStationID

@@ -114,3 +114,47 @@ func TestParseIHeartFields(t *testing.T) {
 	}
 
 }
+
+func TestNormalizeIHeartFieldTrack(t *testing.T) {
+
+	fields := loadMetadataFixture(
+		t,
+		"z100-track-fields.json",
+	)
+
+	item := Normalize(
+		fields,
+	)
+
+	if item.Type != PlaybackTrack {
+		t.Fatalf(
+			"expected track, got %q",
+			item.Type,
+		)
+	}
+
+	if item.Artist != "HOZIER" {
+		t.Errorf(
+			"expected artist %q, got %q",
+			"HOZIER",
+			item.Artist,
+		)
+	}
+
+	if item.Title != "Too Sweet" {
+		t.Errorf(
+			"expected title %q, got %q",
+			"Too Sweet",
+			item.Title,
+		)
+	}
+
+	if item.Duration != 4*time.Minute+8*time.Second {
+		t.Errorf(
+			"expected duration %s, got %s",
+			4*time.Minute+8*time.Second,
+			item.Duration,
+		)
+	}
+
+}

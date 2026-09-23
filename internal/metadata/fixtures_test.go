@@ -49,14 +49,21 @@ func loadMetadataFixture(
 func TestMetadataFixtures(t *testing.T) {
 
 	fixtures := []string{
-		"z100-station-id.json",
-		"z100-track.json",
-		"somafm-track.json",
-		"skafari-ad.json",
-		"skafari-track.json",
-		"wxpn-program.json",
 		"ahfm-program.json",
 		"radioparadise-track.json",
+		"skafari-ad-domain.json",
+		"skafari-ad-progress.json",
+		"skafari-ad.json",
+		"skafari-track.json",
+		"somafm-track.json",
+		"wxpn-program.json",
+		"z100-no-item.json",
+		"z100-spot-block-end.json",
+		"z100-spot.json",
+		"z100-station-id.json",
+		"z100-track-fields-2.json",
+		"z100-track-fields.json",
+		"z100-track.json",
 	}
 
 	for _, fixture := range fixtures {

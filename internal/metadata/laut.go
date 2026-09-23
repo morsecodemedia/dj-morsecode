@@ -20,12 +20,12 @@ func normalizeLautFM(
 		return item
 	}
 
-	if strings.Contains(
-		strings.ToLower(rawTitle),
-		"verbraucherinformationen",
+	if isLautFMAdvertisement(
+		rawTitle,
 	) {
 
 		return item
+
 	}
 
 	artist, title, ok := splitArtistTitle(
@@ -40,5 +40,53 @@ func normalizeLautFM(
 	item.Title = title
 
 	return item
+
+}
+
+func isLautFMAdvertisement(
+	rawTitle string,
+) bool {
+
+	value := strings.ToLower(
+		rawTitle,
+	)
+
+	if strings.Contains(
+		value,
+		"verbraucherinformationen",
+	) {
+
+		return true
+	}
+
+	artist, _, ok := splitArtistTitle(
+		rawTitle,
+	)
+	if !ok {
+		return false
+	}
+
+	return isDomainLike(
+		artist,
+	)
+
+}
+
+func isDomainLike(
+	value string,
+) bool {
+
+	value = strings.TrimSpace(
+		strings.ToLower(value),
+	)
+
+	return strings.Contains(
+		value,
+		".",
+	) &&
+		!strings.Contains(
+			value,
+			" ",
+		)
 
 }

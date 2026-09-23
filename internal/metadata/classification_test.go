@@ -35,6 +35,11 @@ func TestNormalizeFixtureClassification(t *testing.T) {
 			expected: PlaybackUnknown,
 		},
 		{
+			name:     "SKAfari advertisement progress",
+			fixture:  "skafari-ad-progress.json",
+			expected: PlaybackUnknown,
+		},
+		{
 			name:     "WXPN program",
 			fixture:  "wxpn-program.json",
 			expected: PlaybackUnknown,
@@ -48,6 +53,31 @@ func TestNormalizeFixtureClassification(t *testing.T) {
 			name:     "Radio Paradise track",
 			fixture:  "radioparadise-track.json",
 			expected: PlaybackTrack,
+		},
+		{
+			name:     "Z100 field track",
+			fixture:  "z100-track-fields.json",
+			expected: PlaybackTrack,
+		},
+		{
+			name:     "Z100 second field track",
+			fixture:  "z100-track-fields-2.json",
+			expected: PlaybackTrack,
+		},
+		{
+			name:     "Z100 spot",
+			fixture:  "z100-spot.json",
+			expected: PlaybackStationID,
+		},
+		{
+			name:     "Z100 spot block end",
+			fixture:  "z100-spot-block-end.json",
+			expected: PlaybackUnknown,
+		},
+		{
+			name:     "SKAfari domain advertisement",
+			fixture:  "skafari-ad-domain.json",
+			expected: PlaybackUnknown,
 		},
 	}
 

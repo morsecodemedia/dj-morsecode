@@ -18,6 +18,7 @@ func TestCandidate(t *testing.T) {
 		ISRCs: []string{
 			"USSM12401865",
 		},
+		Disambiguation: "Dolby Atmos mix",
 	}
 
 	candidate := Candidate(
@@ -110,6 +111,16 @@ func TestCandidate(t *testing.T) {
 			"expected ISRC %q, got %q",
 			"USSM12401865",
 			candidate.Identifiers[1].Value,
+		)
+
+	}
+
+	if candidate.Variant != "Dolby Atmos mix" {
+
+		t.Errorf(
+			"expected variant %q, got %q",
+			"Dolby Atmos mix",
+			candidate.Variant,
 		)
 
 	}

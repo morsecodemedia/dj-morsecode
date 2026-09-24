@@ -38,6 +38,7 @@ func Candidate(
 		Title:  recording.Title,
 
 		Duration: recording.Duration,
+		Variant:  recording.Disambiguation,
 
 		Identifiers: identifiers,
 

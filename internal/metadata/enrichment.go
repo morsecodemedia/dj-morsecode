@@ -25,6 +25,8 @@ type EnrichmentCandidate struct {
 
 	Duration time.Duration
 
+	Variant string
+
 	Identifiers []Identifier
 
 	Provider      string

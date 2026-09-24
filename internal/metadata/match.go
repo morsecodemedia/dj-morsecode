@@ -9,13 +9,21 @@ const minimumProviderScore = 0.90
 
 const durationTolerance = 5 * time.Second
 
+type MatchStatus int
+
+const (
+	MatchNone MatchStatus = iota
+	MatchAccepted
+	MatchAmbiguous
+)
+
 func MatchEnrichment(
 	observed PlaybackItem,
 	candidates []EnrichmentCandidate,
-) (EnrichmentMatch, bool) {
+) (EnrichmentMatch, MatchStatus) {
 
 	if !observed.IsTrack() {
-		return EnrichmentMatch{}, false
+		return EnrichmentMatch{}, MatchNone
 	}
 
 	var accepted []EnrichmentCandidate
@@ -57,11 +65,15 @@ func MatchEnrichment(
 
 	}
 
+	if len(accepted) == 0 {
+		return EnrichmentMatch{}, MatchNone
+	}
+
 	candidate, ok := resolveCandidate(
 		accepted,
 	)
 	if !ok {
-		return EnrichmentMatch{}, false
+		return EnrichmentMatch{}, MatchAmbiguous
 	}
 
 	return EnrichmentMatch{
@@ -73,7 +85,7 @@ func MatchEnrichment(
 		},
 		Provider:   candidate.Provider,
 		Confidence: candidate.ProviderScore,
-	}, true
+	}, MatchAccepted
 
 }
 

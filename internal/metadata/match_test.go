@@ -32,12 +32,15 @@ func TestMatchEnrichment(t *testing.T) {
 		},
 	}
 
-	match, ok := MatchEnrichment(
+	match, status := MatchEnrichment(
 		observed,
 		candidates,
 	)
-	if !ok {
-		t.Fatal("expected enrichment match")
+	if status != MatchAccepted {
+		t.Fatalf(
+			"expected accepted match, got %v",
+			status,
+		)
 	}
 
 	if match.Track.Artist != "Hozier" {
@@ -83,13 +86,18 @@ func TestMatchEnrichmentRejectsWrongArtist(t *testing.T) {
 		},
 	}
 
-	_, ok := MatchEnrichment(
+	_, status := MatchEnrichment(
 		observed,
 		candidates,
 	)
 
-	if ok {
-		t.Fatal("expected mismatched artist to be rejected")
+	if status != MatchNone {
+
+		t.Fatalf(
+			"expected no match, got %v",
+			status,
+		)
+
 	}
 
 }
@@ -111,13 +119,18 @@ func TestMatchEnrichmentRejectsWrongTitle(t *testing.T) {
 		},
 	}
 
-	_, ok := MatchEnrichment(
+	_, status := MatchEnrichment(
 		observed,
 		candidates,
 	)
 
-	if ok {
-		t.Fatal("expected mismatched title to be rejected")
+	if status != MatchNone {
+
+		t.Fatalf(
+			"expected no match, got %v",
+			status,
+		)
+
 	}
 
 }
@@ -139,13 +152,18 @@ func TestMatchEnrichmentRejectsLowProviderScore(t *testing.T) {
 		},
 	}
 
-	_, ok := MatchEnrichment(
+	_, status := MatchEnrichment(
 		observed,
 		candidates,
 	)
 
-	if ok {
-		t.Fatal("expected low-score candidate to be rejected")
+	if status != MatchNone {
+
+		t.Fatalf(
+			"expected no match, got %v",
+			status,
+		)
+
 	}
 
 }
@@ -169,13 +187,18 @@ func TestMatchEnrichmentRejectsDurationMismatch(t *testing.T) {
 		},
 	}
 
-	_, ok := MatchEnrichment(
+	_, status := MatchEnrichment(
 		observed,
 		candidates,
 	)
 
-	if ok {
-		t.Fatal("expected duration mismatch to be rejected")
+	if status != MatchNone {
+
+		t.Fatalf(
+			"expected no match, got %v",
+			status,
+		)
+
 	}
 
 }
@@ -198,15 +221,18 @@ func TestMatchEnrichmentAllowsMissingDuration(t *testing.T) {
 		},
 	}
 
-	_, ok := MatchEnrichment(
+	_, status := MatchEnrichment(
 		observed,
 		candidates,
 	)
 
-	if !ok {
-		t.Fatal(
-			"expected missing observed duration not to prevent match",
+	if status != MatchAccepted {
+
+		t.Fatalf(
+			"expected accepted match, got %v",
+			status,
 		)
+
 	}
 
 }
@@ -227,15 +253,18 @@ func TestMatchEnrichmentRejectsNonTrack(t *testing.T) {
 		},
 	}
 
-	_, ok := MatchEnrichment(
+	_, status := MatchEnrichment(
 		observed,
 		candidates,
 	)
 
-	if ok {
-		t.Fatal(
-			"expected non-track playback item to be rejected",
+	if status != MatchNone {
+
+		t.Fatalf(
+			"expected no match, got %v",
+			status,
 		)
+
 	}
 
 }
@@ -279,15 +308,18 @@ func TestMatchEnrichmentRejectsAmbiguousCandidates(
 		},
 	}
 
-	_, ok := MatchEnrichment(
+	_, status := MatchEnrichment(
 		observed,
 		candidates,
 	)
 
-	if ok {
-		t.Fatal(
-			"expected ambiguous candidates to be rejected",
+	if status != MatchAmbiguous {
+
+		t.Fatalf(
+			"expected ambiguous match, got %v",
+			status,
 		)
+
 	}
 
 }
@@ -333,13 +365,15 @@ func TestMatchEnrichmentPrefersSingleUnqualifiedCandidate(
 		},
 	}
 
-	match, ok := MatchEnrichment(
+	match, status := MatchEnrichment(
 		observed,
 		candidates,
 	)
-	if !ok {
-		t.Fatal(
-			"expected unqualified candidate to resolve ambiguity",
+
+	if status != MatchAccepted {
+		t.Fatalf(
+			"expected unqualified candidate to resolve ambiguity, got %v",
+			status,
 		)
 	}
 
@@ -389,15 +423,44 @@ func TestMatchEnrichmentRejectsMultipleQualifiedCandidates(
 		},
 	}
 
-	_, ok := MatchEnrichment(
+	_, status := MatchEnrichment(
 		observed,
 		candidates,
 	)
 
-	if ok {
-		t.Fatal(
-			"expected qualified candidates to remain ambiguous",
+	if status != MatchAmbiguous {
+
+		t.Fatalf(
+			"expected ambiguous match, got %v",
+			status,
 		)
+
+	}
+
+}
+
+func TestMatchEnrichmentReturnsNoneForNoCandidates(
+	t *testing.T,
+) {
+
+	observed := PlaybackItem{
+		Type:   PlaybackTrack,
+		Artist: "Hozier",
+		Title:  "Too Sweet",
+	}
+
+	_, status := MatchEnrichment(
+		observed,
+		nil,
+	)
+
+	if status != MatchNone {
+
+		t.Fatalf(
+			"expected no match, got %v",
+			status,
+		)
+
 	}
 
 }

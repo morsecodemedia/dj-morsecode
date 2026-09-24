@@ -18,6 +18,8 @@ func MatchEnrichment(
 		return EnrichmentMatch{}, false
 	}
 
+	var accepted []EnrichmentCandidate
+
 	for _, candidate := range candidates {
 
 		if candidate.ProviderScore < minimumProviderScore {
@@ -48,20 +50,29 @@ func MatchEnrichment(
 			continue
 		}
 
-		return EnrichmentMatch{
-			Track: CanonicalTrack{
-				Artist: candidate.Artist,
-				Title:  candidate.Title,
-
-				Identifiers: candidate.Identifiers,
-			},
-			Provider:   candidate.Provider,
-			Confidence: candidate.ProviderScore,
-		}, true
+		accepted = append(
+			accepted,
+			candidate,
+		)
 
 	}
 
-	return EnrichmentMatch{}, false
+	if len(accepted) != 1 {
+		return EnrichmentMatch{}, false
+	}
+
+	candidate := accepted[0]
+
+	return EnrichmentMatch{
+		Track: CanonicalTrack{
+			Artist: candidate.Artist,
+			Title:  candidate.Title,
+
+			Identifiers: candidate.Identifiers,
+		},
+		Provider:   candidate.Provider,
+		Confidence: candidate.ProviderScore,
+	}, true
 
 }
 

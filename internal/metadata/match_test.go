@@ -239,3 +239,55 @@ func TestMatchEnrichmentRejectsNonTrack(t *testing.T) {
 	}
 
 }
+func TestMatchEnrichmentRejectsAmbiguousCandidates(
+	t *testing.T,
+) {
+
+	observed := PlaybackItem{
+		Type:     PlaybackTrack,
+		Artist:   "Hozier",
+		Title:    "Too Sweet",
+		Duration: 251 * time.Second,
+	}
+
+	candidates := []EnrichmentCandidate{
+		{
+			Artist:        "Hozier",
+			Title:         "Too Sweet",
+			Duration:      251*time.Second + 424*time.Millisecond,
+			Provider:      "musicbrainz",
+			ProviderScore: 1,
+			Identifiers: []Identifier{
+				{
+					Scheme: IdentifierMusicBrainz,
+					Value:  "recording-a",
+				},
+			},
+		},
+		{
+			Artist:        "Hozier",
+			Title:         "Too Sweet",
+			Duration:      251 * time.Second,
+			Provider:      "musicbrainz",
+			ProviderScore: 1,
+			Identifiers: []Identifier{
+				{
+					Scheme: IdentifierMusicBrainz,
+					Value:  "recording-b",
+				},
+			},
+		},
+	}
+
+	_, ok := MatchEnrichment(
+		observed,
+		candidates,
+	)
+
+	if ok {
+		t.Fatal(
+			"expected ambiguous candidates to be rejected",
+		)
+	}
+
+}

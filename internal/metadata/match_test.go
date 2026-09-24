@@ -291,3 +291,113 @@ func TestMatchEnrichmentRejectsAmbiguousCandidates(
 	}
 
 }
+
+func TestMatchEnrichmentPrefersSingleUnqualifiedCandidate(
+	t *testing.T,
+) {
+
+	observed := PlaybackItem{
+		Type:     PlaybackTrack,
+		Artist:   "Hozier",
+		Title:    "Too Sweet",
+		Duration: 251 * time.Second,
+	}
+
+	candidates := []EnrichmentCandidate{
+		{
+			Artist:        "Hozier",
+			Title:         "Too Sweet",
+			Duration:      251*time.Second + 424*time.Millisecond,
+			Variant:       "Dolby Atmos mix",
+			Provider:      "musicbrainz",
+			ProviderScore: 1,
+			Identifiers: []Identifier{
+				{
+					Scheme: IdentifierMusicBrainz,
+					Value:  "atmos-recording",
+				},
+			},
+		},
+		{
+			Artist:        "Hozier",
+			Title:         "Too Sweet",
+			Duration:      251 * time.Second,
+			Provider:      "musicbrainz",
+			ProviderScore: 1,
+			Identifiers: []Identifier{
+				{
+					Scheme: IdentifierMusicBrainz,
+					Value:  "standard-recording",
+				},
+			},
+		},
+	}
+
+	match, ok := MatchEnrichment(
+		observed,
+		candidates,
+	)
+	if !ok {
+		t.Fatal(
+			"expected unqualified candidate to resolve ambiguity",
+		)
+	}
+
+	if len(match.Track.Identifiers) != 1 {
+		t.Fatalf(
+			"expected one identifier, got %d",
+			len(match.Track.Identifiers),
+		)
+	}
+
+	if match.Track.Identifiers[0].Value !=
+		"standard-recording" {
+
+		t.Errorf(
+			"expected standard recording, got %q",
+			match.Track.Identifiers[0].Value,
+		)
+
+	}
+
+}
+
+func TestMatchEnrichmentRejectsMultipleQualifiedCandidates(
+	t *testing.T,
+) {
+
+	observed := PlaybackItem{
+		Type:   PlaybackTrack,
+		Artist: "Hozier",
+		Title:  "Too Sweet",
+	}
+
+	candidates := []EnrichmentCandidate{
+		{
+			Artist:        "Hozier",
+			Title:         "Too Sweet",
+			Variant:       "live",
+			Provider:      "musicbrainz",
+			ProviderScore: 1,
+		},
+		{
+			Artist:        "Hozier",
+			Title:         "Too Sweet",
+			Variant:       "remix",
+			Provider:      "musicbrainz",
+			ProviderScore: 1,
+		},
+	}
+
+	_, ok := MatchEnrichment(
+		observed,
+		candidates,
+	)
+
+	if ok {
+		t.Fatal(
+			"expected qualified candidates to remain ambiguous",
+		)
+	}
+
+}

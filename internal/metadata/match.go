@@ -57,11 +57,12 @@ func MatchEnrichment(
 
 	}
 
-	if len(accepted) != 1 {
+	candidate, ok := resolveCandidate(
+		accepted,
+	)
+	if !ok {
 		return EnrichmentMatch{}, false
 	}
-
-	candidate := accepted[0]
 
 	return EnrichmentMatch{
 		Track: CanonicalTrack{
@@ -73,6 +74,40 @@ func MatchEnrichment(
 		Provider:   candidate.Provider,
 		Confidence: candidate.ProviderScore,
 	}, true
+
+}
+
+func resolveCandidate(
+	candidates []EnrichmentCandidate,
+) (EnrichmentCandidate, bool) {
+
+	if len(candidates) == 1 {
+		return candidates[0], true
+	}
+
+	var unqualified []EnrichmentCandidate
+
+	for _, candidate := range candidates {
+
+		if strings.TrimSpace(
+			candidate.Variant,
+		) != "" {
+
+			continue
+		}
+
+		unqualified = append(
+			unqualified,
+			candidate,
+		)
+
+	}
+
+	if len(unqualified) != 1 {
+		return EnrichmentCandidate{}, false
+	}
+
+	return unqualified[0], true
 
 }
 

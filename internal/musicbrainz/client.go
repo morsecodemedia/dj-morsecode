@@ -88,6 +88,13 @@ type searchResponse struct {
 	Recordings []recordingResponse `json:"recordings"`
 }
 
+type releaseResponse struct {
+	ID      string `json:"id"`
+	Title   string `json:"title"`
+	Date    string `json:"date"`
+	Country string `json:"country"`
+}
+
 type recordingResponse struct {
 	ID     string `json:"id"`
 	Score  int    `json:"score"`
@@ -97,6 +104,10 @@ type recordingResponse struct {
 	ArtistCredit []artistCreditResponse `json:"artist-credit"`
 
 	ISRCs []string `json:"isrcs"`
+
+	Disambiguation string `json:"disambiguation"`
+
+	Releases []releaseResponse `json:"releases"`
 }
 
 type artistCreditResponse struct {
@@ -191,25 +202,13 @@ func (c *Client) SearchRecordings(
 		len(result.Recordings),
 	)
 
-	for _, candidate := range result.Recordings {
+	for _, response := range result.Recordings {
 
 		recordings = append(
 			recordings,
-			Recording{
-				ID: candidate.ID,
-
-				Artist: artistCreditName(
-					candidate.ArtistCredit,
-				),
-				Title: candidate.Title,
-
-				Score: candidate.Score,
-				Duration: time.Duration(
-					candidate.Length,
-				) * time.Millisecond,
-
-				ISRCs: candidate.ISRCs,
-			},
+			recordingFromResponse(
+				response,
+			),
 		)
 
 	}
@@ -270,5 +269,125 @@ func artistCreditName(
 	return strings.TrimSpace(
 		builder.String(),
 	)
+
+}
+
+func recordingFromResponse(
+	response recordingResponse,
+) Recording {
+
+	releases := make(
+		[]Release,
+		0,
+		len(response.Releases),
+	)
+
+	for _, release := range response.Releases {
+
+		releases = append(
+			releases,
+			Release{
+				ID:      release.ID,
+				Title:   release.Title,
+				Date:    release.Date,
+				Country: release.Country,
+			},
+		)
+
+	}
+
+	return Recording{
+		ID: response.ID,
+
+		Artist: artistCreditName(
+			response.ArtistCredit,
+		),
+		Title: response.Title,
+
+		Score: response.Score,
+		Duration: time.Duration(
+			response.Length,
+		) * time.Millisecond,
+
+		ISRCs: response.ISRCs,
+
+		Disambiguation: response.Disambiguation,
+		Releases:       releases,
+	}
+
+}
+
+func (c *Client) LookupRecording(
+	ctx context.Context,
+	id string,
+) (Recording, error) {
+
+	endpoint, err := url.Parse(
+		c.baseURL + "/recording/" + url.PathEscape(id),
+	)
+	if err != nil {
+		return Recording{}, err
+	}
+
+	values := endpoint.Query()
+	values.Set("fmt", "json")
+	values.Set(
+		"inc",
+		"artist-credits+isrcs+releases",
+	)
+
+	endpoint.RawQuery = values.Encode()
+
+	request, err := http.NewRequestWithContext(
+		ctx,
+		http.MethodGet,
+		endpoint.String(),
+		nil,
+	)
+	if err != nil {
+		return Recording{}, err
+	}
+
+	request.Header.Set(
+		"User-Agent",
+		c.userAgent,
+	)
+
+	if err := c.waitForRequest(
+		ctx,
+	); err != nil {
+
+		return Recording{}, err
+	}
+
+	response, err := c.httpClient.Do(
+		request,
+	)
+	if err != nil {
+		return Recording{}, err
+	}
+	defer response.Body.Close()
+
+	if response.StatusCode != http.StatusOK {
+
+		return Recording{}, fmt.Errorf(
+			"musicbrainz recording lookup failed: %s",
+			response.Status,
+		)
+
+	}
+
+	var result recordingResponse
+
+	if err := json.NewDecoder(
+		response.Body,
+	).Decode(&result); err != nil {
+
+		return Recording{}, err
+	}
+
+	return recordingFromResponse(
+		result,
+	), nil
 
 }

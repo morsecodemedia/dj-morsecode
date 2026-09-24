@@ -12,4 +12,14 @@ type Recording struct {
 	Duration time.Duration
 
 	ISRCs []string
+
+	Disambiguation string
+	Releases       []Release
+}
+
+type Release struct {
+	ID      string
+	Title   string
+	Date    string
+	Country string
 }

@@ -346,3 +346,216 @@ func TestSearchRecordingsThrottleRespectsContext(
 	}
 
 }
+func TestLookupRecording(t *testing.T) {
+
+	server := httptest.NewServer(
+		http.HandlerFunc(
+			func(
+				w http.ResponseWriter,
+				r *http.Request,
+			) {
+
+				if r.URL.Path !=
+					"/recording/abc45ef4-a3a9-42bb-a14c-09c77f26936d" {
+
+					t.Errorf(
+						"unexpected path %q",
+						r.URL.Path,
+					)
+
+				}
+
+				if got := r.URL.Query().Get(
+					"fmt",
+				); got != "json" {
+
+					t.Errorf(
+						"expected fmt json, got %q",
+						got,
+					)
+
+				}
+
+				if got := r.URL.Query().Get(
+					"inc",
+				); got != "artist-credits+isrcs+releases" {
+
+					t.Errorf(
+						"unexpected inc %q",
+						got,
+					)
+
+				}
+
+				if got := r.Header.Get(
+					"User-Agent",
+				); got != "dj-morsecode/test" {
+
+					t.Errorf(
+						"expected user agent %q, got %q",
+						"dj-morsecode/test",
+						got,
+					)
+
+				}
+
+				w.Header().Set(
+					"Content-Type",
+					"application/json",
+				)
+
+				_, _ = w.Write(
+					[]byte(`{
+						"id": "abc45ef4-a3a9-42bb-a14c-09c77f26936d",
+						"title": "Too Sweet",
+						"length": 251424,
+						"disambiguation": "",
+						"artist-credit": [
+							{
+								"name": "Hozier",
+								"artist": {
+									"name": "Hozier"
+								}
+							}
+						],
+						"isrcs": [
+							"IEACJ2400038"
+						],
+						"releases": [
+							{
+								"id": "release-id",
+								"title": "Unheard",
+								"date": "2024-03-22",
+								"country": "XW"
+							}
+						]
+					}`),
+				)
+
+			},
+		),
+	)
+	defer server.Close()
+
+	client := NewClient(
+		"dj-morsecode/test",
+	)
+
+	client.baseURL = server.URL
+	client.httpClient = server.Client()
+
+	recording, err := client.LookupRecording(
+		context.Background(),
+		"abc45ef4-a3a9-42bb-a14c-09c77f26936d",
+	)
+	if err != nil {
+
+		t.Fatalf(
+			"LookupRecording returned error: %v",
+			err,
+		)
+
+	}
+
+	if recording.ID !=
+		"abc45ef4-a3a9-42bb-a14c-09c77f26936d" {
+
+		t.Errorf(
+			"unexpected recording ID %q",
+			recording.ID,
+		)
+
+	}
+
+	if recording.Artist != "Hozier" {
+
+		t.Errorf(
+			"expected artist %q, got %q",
+			"Hozier",
+			recording.Artist,
+		)
+
+	}
+
+	if recording.Title != "Too Sweet" {
+
+		t.Errorf(
+			"expected title %q, got %q",
+			"Too Sweet",
+			recording.Title,
+		)
+
+	}
+
+	if recording.Duration !=
+		251424*time.Millisecond {
+
+		t.Errorf(
+			"expected duration %s, got %s",
+			251424*time.Millisecond,
+			recording.Duration,
+		)
+
+	}
+
+	if len(recording.ISRCs) != 1 {
+
+		t.Fatalf(
+			"expected one ISRC, got %d",
+			len(recording.ISRCs),
+		)
+
+	}
+
+	if recording.ISRCs[0] != "IEACJ2400038" {
+
+		t.Errorf(
+			"expected ISRC %q, got %q",
+			"IEACJ2400038",
+			recording.ISRCs[0],
+		)
+
+	}
+
+	if len(recording.Releases) != 1 {
+
+		t.Fatalf(
+			"expected one release, got %d",
+			len(recording.Releases),
+		)
+
+	}
+
+	release := recording.Releases[0]
+
+	if release.Title != "Unheard" {
+
+		t.Errorf(
+			"expected release title %q, got %q",
+			"Unheard",
+			release.Title,
+		)
+
+	}
+
+	if release.Date != "2024-03-22" {
+
+		t.Errorf(
+			"expected release date %q, got %q",
+			"2024-03-22",
+			release.Date,
+		)
+
+	}
+
+	if release.Country != "XW" {
+
+		t.Errorf(
+			"expected release country %q, got %q",
+			"XW",
+			release.Country,
+		)
+
+	}
+
+}

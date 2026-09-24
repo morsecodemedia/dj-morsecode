@@ -1,5 +1,7 @@
 package metadata
 
+import "time"
+
 type Identifier struct {
 	Scheme string
 	Value  string
@@ -15,6 +17,18 @@ type CanonicalTrack struct {
 	Title  string
 
 	Identifiers []Identifier
+}
+
+type EnrichmentCandidate struct {
+	Artist string
+	Title  string
+
+	Duration time.Duration
+
+	Identifiers []Identifier
+
+	Provider      string
+	ProviderScore float64
 }
 
 type EnrichmentMatch struct {

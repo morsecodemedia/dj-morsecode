@@ -1,6 +1,9 @@
 package metadata
 
-import "testing"
+import (
+	"testing"
+	"time"
+)
 
 func TestCanonicalTrackIdentifier(t *testing.T) {
 
@@ -37,6 +40,39 @@ func TestCanonicalTrackIdentifier(t *testing.T) {
 			"expected value %q, got %q",
 			"recording-id",
 			identifier.Value,
+		)
+	}
+
+}
+
+func TestEnrichmentCandidate(t *testing.T) {
+
+	candidate := EnrichmentCandidate{
+		Artist:   "Hozier",
+		Title:    "Too Sweet",
+		Duration: 251 * time.Second,
+		Identifiers: []Identifier{
+			{
+				Scheme: IdentifierMusicBrainz,
+				Value:  "recording-id",
+			},
+		},
+		Provider:      "musicbrainz",
+		ProviderScore: 1,
+	}
+
+	if candidate.Provider != "musicbrainz" {
+		t.Errorf(
+			"expected provider %q, got %q",
+			"musicbrainz",
+			candidate.Provider,
+		)
+	}
+
+	if candidate.ProviderScore != 1 {
+		t.Errorf(
+			"expected provider score 1, got %f",
+			candidate.ProviderScore,
 		)
 	}
 

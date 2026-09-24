@@ -8,17 +8,24 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
 const defaultBaseURL = "https://musicbrainz.org/ws/2"
 
 const defaultLimit = 10
+const minimumRequestInterval = time.Second
 
 type Client struct {
 	baseURL    string
 	httpClient *http.Client
 	userAgent  string
+
+	requestInterval time.Duration
+
+	mu          sync.Mutex
+	lastRequest time.Time
 }
 
 func NewClient(
@@ -30,8 +37,50 @@ func NewClient(
 		httpClient: &http.Client{
 			Timeout: 10 * time.Second,
 		},
-		userAgent: userAgent,
+		userAgent:       userAgent,
+		requestInterval: minimumRequestInterval,
 	}
+
+}
+
+func (c *Client) waitForRequest(
+	ctx context.Context,
+) error {
+
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	if c.lastRequest.IsZero() {
+
+		c.lastRequest = time.Now()
+		return nil
+
+	}
+
+	wait := c.requestInterval -
+		time.Since(c.lastRequest)
+
+	if wait > 0 {
+
+		timer := time.NewTimer(
+			wait,
+		)
+		defer timer.Stop()
+
+		select {
+
+		case <-ctx.Done():
+			return ctx.Err()
+
+		case <-timer.C:
+
+		}
+
+	}
+
+	c.lastRequest = time.Now()
+
+	return nil
 
 }
 
@@ -101,6 +150,14 @@ func (c *Client) SearchRecordings(
 		"User-Agent",
 		c.userAgent,
 	)
+
+	if err := c.waitForRequest(
+		ctx,
+	); err != nil {
+
+		return nil, err
+
+	}
 
 	response, err := c.httpClient.Do(
 		request,

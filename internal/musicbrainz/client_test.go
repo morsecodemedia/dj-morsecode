@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"sync"
 	"testing"
 	"time"
 )
@@ -176,6 +177,171 @@ func TestRecordingQuery(t *testing.T) {
 			"expected query %q, got %q",
 			expected,
 			query,
+		)
+	}
+
+}
+
+func TestSearchRecordingsThrottlesRequests(
+	t *testing.T,
+) {
+
+	var mu sync.Mutex
+	var requests []time.Time
+
+	server := httptest.NewServer(
+		http.HandlerFunc(
+			func(
+				w http.ResponseWriter,
+				r *http.Request,
+			) {
+
+				mu.Lock()
+				requests = append(
+					requests,
+					time.Now(),
+				)
+				mu.Unlock()
+
+				w.Header().Set(
+					"Content-Type",
+					"application/json",
+				)
+
+				_, _ = w.Write(
+					[]byte(`{
+						"recordings": []
+					}`),
+				)
+
+			},
+		),
+	)
+	defer server.Close()
+
+	client := NewClient(
+		"dj-morsecode/test",
+	)
+
+	client.baseURL = server.URL
+	client.httpClient = server.Client()
+	client.requestInterval = 25 * time.Millisecond
+
+	ctx := context.Background()
+
+	if _, err := client.SearchRecordings(
+		ctx,
+		"Hozier",
+		"Too Sweet",
+	); err != nil {
+
+		t.Fatalf(
+			"first search returned error: %v",
+			err,
+		)
+
+	}
+
+	if _, err := client.SearchRecordings(
+		ctx,
+		"Hozier",
+		"Too Sweet",
+	); err != nil {
+
+		t.Fatalf(
+			"second search returned error: %v",
+			err,
+		)
+
+	}
+
+	mu.Lock()
+	defer mu.Unlock()
+
+	if len(requests) != 2 {
+		t.Fatalf(
+			"expected two requests, got %d",
+			len(requests),
+		)
+	}
+
+	elapsed := requests[1].Sub(
+		requests[0],
+	)
+
+	if elapsed < client.requestInterval {
+
+		t.Errorf(
+			"expected requests at least %s apart, got %s",
+			client.requestInterval,
+			elapsed,
+		)
+
+	}
+
+}
+func TestSearchRecordingsThrottleRespectsContext(
+	t *testing.T,
+) {
+
+	server := httptest.NewServer(
+		http.HandlerFunc(
+			func(
+				w http.ResponseWriter,
+				r *http.Request,
+			) {
+
+				w.Header().Set(
+					"Content-Type",
+					"application/json",
+				)
+
+				_, _ = w.Write(
+					[]byte(`{
+						"recordings": []
+					}`),
+				)
+
+			},
+		),
+	)
+	defer server.Close()
+
+	client := NewClient(
+		"dj-morsecode/test",
+	)
+
+	client.baseURL = server.URL
+	client.httpClient = server.Client()
+	client.requestInterval = time.Second
+
+	if _, err := client.SearchRecordings(
+		context.Background(),
+		"Hozier",
+		"Too Sweet",
+	); err != nil {
+
+		t.Fatalf(
+			"first search returned error: %v",
+			err,
+		)
+
+	}
+
+	ctx, cancel := context.WithCancel(
+		context.Background(),
+	)
+	cancel()
+
+	_, err := client.SearchRecordings(
+		ctx,
+		"Hozier",
+		"Too Sweet",
+	)
+
+	if err == nil {
+		t.Fatal(
+			"expected canceled search to return error",
 		)
 	}
 

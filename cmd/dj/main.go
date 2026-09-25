@@ -1,15 +1,18 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/morsecodemedia/dj-morsecode/internal/enrichment"
 	"github.com/morsecodemedia/dj-morsecode/internal/library"
 	"github.com/morsecodemedia/dj-morsecode/internal/lrclib"
 	"github.com/morsecodemedia/dj-morsecode/internal/metadata"
 	"github.com/morsecodemedia/dj-morsecode/internal/music"
+	"github.com/morsecodemedia/dj-morsecode/internal/musicbrainz"
 	"github.com/morsecodemedia/dj-morsecode/internal/player"
 	"github.com/morsecodemedia/dj-morsecode/internal/player/mpv"
 	"github.com/morsecodemedia/dj-morsecode/internal/radio"
@@ -60,6 +63,8 @@ type model struct {
 	LastTrack          string
 	PlaybackItem       metadata.PlaybackItem
 	LyricsState        lyricsState
+	EnrichmentService  *enrichment.Service
+	EnrichmentMatch    metadata.EnrichmentMatch
 	StationPickerOpen  bool
 	StationHistoryOpen bool
 	VibePickerOpen     bool
@@ -188,6 +193,14 @@ type lrclibSongMsg struct {
 	Err          error
 }
 
+type enrichmentMsg struct {
+	TrackID string
+
+	Match  metadata.EnrichmentMatch
+	Status metadata.MatchStatus
+	Err    error
+}
+
 const TickRate = time.Second
 
 func tick() tea.Cmd {
@@ -198,6 +211,34 @@ func tick() tea.Cmd {
 			return tickMsg(t)
 		},
 	)
+
+}
+
+func enrichTrack(
+	service *enrichment.Service,
+	trackID string,
+	item metadata.PlaybackItem,
+) tea.Cmd {
+
+	if service == nil {
+		return nil
+	}
+
+	return func() tea.Msg {
+
+		match, status, err := service.Enrich(
+			context.Background(),
+			item,
+		)
+
+		return enrichmentMsg{
+			TrackID: trackID,
+			Match:   match,
+			Status:  status,
+			Err:     err,
+		}
+
+	}
 
 }
 
@@ -777,6 +818,35 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 
 				m.CurrentCue = 0
+				m.EnrichmentMatch =
+					metadata.EnrichmentMatch{}
+
+				enrichmentDuration := time.Duration(0)
+
+				if isNetwork &&
+					m.PlaybackItem.Duration > 0 {
+
+					enrichmentDuration =
+						m.PlaybackItem.Duration
+
+				} else if !isNetwork {
+
+					enrichmentDuration = duration
+
+				}
+
+				enrichmentItem := metadata.PlaybackItem{
+					Type:     metadata.PlaybackTrack,
+					Artist:   track.Artist,
+					Title:    track.Title,
+					Duration: enrichmentDuration,
+				}
+
+				enrichmentCmd := enrichTrack(
+					m.EnrichmentService,
+					trackID,
+					enrichmentItem,
+				)
 
 				song, ok := library.Load(
 					track.Artist,
@@ -789,7 +859,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.LyricsState = lyricsLocal
 					m.LastTrack = trackID
 
-					return m, tick()
+					return m, tea.Batch(
+						tick(),
+						enrichmentCmd,
+					)
 
 				}
 
@@ -804,6 +877,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						track.Title,
 						duration,
 					),
+					enrichmentCmd,
 				)
 
 			}
@@ -845,6 +919,24 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.Song.Timeline,
 			m.Player.Position(),
 		)
+
+		return m, nil
+
+	case enrichmentMsg:
+
+		if msg.Err != nil {
+			return m, nil
+		}
+
+		if msg.TrackID != m.LastTrack {
+			return m, nil
+		}
+
+		if msg.Status != metadata.MatchAccepted {
+			return m, nil
+		}
+
+		m.EnrichmentMatch = msg.Match
 
 		return m, nil
 
@@ -925,7 +1017,7 @@ func (m model) View() string {
 		stationName = station.Name
 	}
 
-	return ui.Render(
+	view := ui.Render(
 		m.Song,
 		m.Width,
 		m.OnAir,
@@ -938,9 +1030,51 @@ func (m model) View() string {
 		intentName,
 	)
 
+	if m.EnrichmentMatch.Track.Title != "" {
+
+		view += fmt.Sprintf(
+			"\nENRICHED • %s • %.0f%%",
+			m.EnrichmentMatch.Provider,
+			m.EnrichmentMatch.Confidence*100,
+		)
+
+		for _, identifier := range m.EnrichmentMatch.Track.Identifiers {
+
+			if identifier.Scheme ==
+				metadata.IdentifierMusicBrainz {
+
+				view += fmt.Sprintf(
+					"\nMBID • %s",
+					identifier.Value,
+				)
+
+				break
+			}
+
+		}
+
+	}
+
+	return view
+
 }
 
 func main() {
+
+	musicBrainzClient := musicbrainz.NewClient(
+		"DJ MorseCode/1.0.0 (https://github.com/morsecodemedia/dj-morsecode)",
+	)
+
+	musicBrainzEnricher := musicbrainz.NewEnricher(
+		musicBrainzClient,
+	)
+
+	enrichmentStore := metadata.NewEnrichmentStore()
+
+	enrichmentService := enrichment.NewService(
+		enrichmentStore,
+		musicBrainzEnricher,
+	)
 
 	mpvProcess := mpv.NewProcess(
 		mpvSocketPath,
@@ -998,7 +1132,8 @@ func main() {
 	}
 
 	p := tea.NewProgram(model{
-		Player: playback,
+		Player:            playback,
+		EnrichmentService: enrichmentService,
 	})
 
 	if _, err := p.Run(); err != nil {

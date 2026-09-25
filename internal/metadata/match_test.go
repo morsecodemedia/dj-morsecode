@@ -1,0 +1,561 @@
+package metadata
+
+import (
+	"testing"
+	"time"
+)
+
+func TestMatchEnrichment(t *testing.T) {
+
+	observed := PlaybackItem{
+		Type:     PlaybackTrack,
+		Artist:   "HOZIER",
+		Title:    "Too Sweet",
+		Duration: 251 * time.Second,
+	}
+
+	candidates := []EnrichmentCandidate{
+		{
+			Artist:   "Hozier",
+			Title:    "Too Sweet",
+			Duration: 250 * time.Second,
+
+			Identifiers: []Identifier{
+				{
+					Scheme: IdentifierMusicBrainz,
+					Value:  "recording-id",
+				},
+			},
+
+			Provider:      "musicbrainz",
+			ProviderScore: 1,
+		},
+	}
+
+	match, status := MatchEnrichment(
+		observed,
+		candidates,
+	)
+	if status != MatchAccepted {
+		t.Fatalf(
+			"expected accepted match, got %v",
+			status,
+		)
+	}
+
+	if match.Track.Artist != "Hozier" {
+		t.Errorf(
+			"expected canonical artist %q, got %q",
+			"Hozier",
+			match.Track.Artist,
+		)
+	}
+
+	if match.Track.Title != "Too Sweet" {
+		t.Errorf(
+			"expected canonical title %q, got %q",
+			"Too Sweet",
+			match.Track.Title,
+		)
+	}
+
+	if match.Provider != "musicbrainz" {
+		t.Errorf(
+			"expected provider %q, got %q",
+			"musicbrainz",
+			match.Provider,
+		)
+	}
+
+}
+
+func TestMatchEnrichmentRejectsWrongArtist(t *testing.T) {
+
+	observed := PlaybackItem{
+		Type:   PlaybackTrack,
+		Artist: "Queen",
+		Title:  "Somebody to Love",
+	}
+
+	candidates := []EnrichmentCandidate{
+		{
+			Artist:        "Jefferson Airplane",
+			Title:         "Somebody to Love",
+			Provider:      "musicbrainz",
+			ProviderScore: 1,
+		},
+	}
+
+	_, status := MatchEnrichment(
+		observed,
+		candidates,
+	)
+
+	if status != MatchNone {
+
+		t.Fatalf(
+			"expected no match, got %v",
+			status,
+		)
+
+	}
+
+}
+
+func TestMatchEnrichmentRejectsWrongTitle(t *testing.T) {
+
+	observed := PlaybackItem{
+		Type:   PlaybackTrack,
+		Artist: "Hozier",
+		Title:  "Too Sweet",
+	}
+
+	candidates := []EnrichmentCandidate{
+		{
+			Artist:        "Hozier",
+			Title:         "Take Me to Church",
+			Provider:      "musicbrainz",
+			ProviderScore: 1,
+		},
+	}
+
+	_, status := MatchEnrichment(
+		observed,
+		candidates,
+	)
+
+	if status != MatchNone {
+
+		t.Fatalf(
+			"expected no match, got %v",
+			status,
+		)
+
+	}
+
+}
+
+func TestMatchEnrichmentRejectsLowProviderScore(t *testing.T) {
+
+	observed := PlaybackItem{
+		Type:   PlaybackTrack,
+		Artist: "Hozier",
+		Title:  "Too Sweet",
+	}
+
+	candidates := []EnrichmentCandidate{
+		{
+			Artist:        "Hozier",
+			Title:         "Too Sweet",
+			Provider:      "musicbrainz",
+			ProviderScore: 0.75,
+		},
+	}
+
+	_, status := MatchEnrichment(
+		observed,
+		candidates,
+	)
+
+	if status != MatchNone {
+
+		t.Fatalf(
+			"expected no match, got %v",
+			status,
+		)
+
+	}
+
+}
+
+func TestMatchEnrichmentRejectsDurationMismatch(t *testing.T) {
+
+	observed := PlaybackItem{
+		Type:     PlaybackTrack,
+		Artist:   "Hozier",
+		Title:    "Too Sweet",
+		Duration: 251 * time.Second,
+	}
+
+	candidates := []EnrichmentCandidate{
+		{
+			Artist:        "Hozier",
+			Title:         "Too Sweet",
+			Duration:      300 * time.Second,
+			Provider:      "musicbrainz",
+			ProviderScore: 1,
+		},
+	}
+
+	_, status := MatchEnrichment(
+		observed,
+		candidates,
+	)
+
+	if status != MatchNone {
+
+		t.Fatalf(
+			"expected no match, got %v",
+			status,
+		)
+
+	}
+
+}
+
+func TestMatchEnrichmentAllowsMissingDuration(t *testing.T) {
+
+	observed := PlaybackItem{
+		Type:   PlaybackTrack,
+		Artist: "Hozier",
+		Title:  "Too Sweet",
+	}
+
+	candidates := []EnrichmentCandidate{
+		{
+			Artist:        "Hozier",
+			Title:         "Too Sweet",
+			Duration:      251 * time.Second,
+			Provider:      "musicbrainz",
+			ProviderScore: 1,
+		},
+	}
+
+	_, status := MatchEnrichment(
+		observed,
+		candidates,
+	)
+
+	if status != MatchAccepted {
+
+		t.Fatalf(
+			"expected accepted match, got %v",
+			status,
+		)
+
+	}
+
+}
+
+func TestMatchEnrichmentRejectsNonTrack(t *testing.T) {
+
+	observed := PlaybackItem{
+		Type:  PlaybackStationID,
+		Title: "Z100",
+	}
+
+	candidates := []EnrichmentCandidate{
+		{
+			Artist:        "Z100",
+			Title:         "Z100",
+			Provider:      "musicbrainz",
+			ProviderScore: 1,
+		},
+	}
+
+	_, status := MatchEnrichment(
+		observed,
+		candidates,
+	)
+
+	if status != MatchNone {
+
+		t.Fatalf(
+			"expected no match, got %v",
+			status,
+		)
+
+	}
+
+}
+func TestMatchEnrichmentRejectsAmbiguousCandidates(
+	t *testing.T,
+) {
+
+	observed := PlaybackItem{
+		Type:     PlaybackTrack,
+		Artist:   "Hozier",
+		Title:    "Too Sweet",
+		Duration: 251 * time.Second,
+	}
+
+	candidates := []EnrichmentCandidate{
+		{
+			Artist:        "Hozier",
+			Title:         "Too Sweet",
+			Duration:      251*time.Second + 424*time.Millisecond,
+			Provider:      "musicbrainz",
+			ProviderScore: 1,
+			Identifiers: []Identifier{
+				{
+					Scheme: IdentifierMusicBrainz,
+					Value:  "recording-a",
+				},
+			},
+		},
+		{
+			Artist:        "Hozier",
+			Title:         "Too Sweet",
+			Duration:      251 * time.Second,
+			Provider:      "musicbrainz",
+			ProviderScore: 1,
+			Identifiers: []Identifier{
+				{
+					Scheme: IdentifierMusicBrainz,
+					Value:  "recording-b",
+				},
+			},
+		},
+	}
+
+	_, status := MatchEnrichment(
+		observed,
+		candidates,
+	)
+
+	if status != MatchAmbiguous {
+
+		t.Fatalf(
+			"expected ambiguous match, got %v",
+			status,
+		)
+
+	}
+
+}
+
+func TestMatchEnrichmentPrefersSingleUnqualifiedCandidate(
+	t *testing.T,
+) {
+
+	observed := PlaybackItem{
+		Type:     PlaybackTrack,
+		Artist:   "Hozier",
+		Title:    "Too Sweet",
+		Duration: 251 * time.Second,
+	}
+
+	candidates := []EnrichmentCandidate{
+		{
+			Artist:        "Hozier",
+			Title:         "Too Sweet",
+			Duration:      251*time.Second + 424*time.Millisecond,
+			Variant:       "Dolby Atmos mix",
+			Provider:      "musicbrainz",
+			ProviderScore: 1,
+			Identifiers: []Identifier{
+				{
+					Scheme: IdentifierMusicBrainz,
+					Value:  "atmos-recording",
+				},
+			},
+		},
+		{
+			Artist:        "Hozier",
+			Title:         "Too Sweet",
+			Duration:      251 * time.Second,
+			Provider:      "musicbrainz",
+			ProviderScore: 1,
+			Identifiers: []Identifier{
+				{
+					Scheme: IdentifierMusicBrainz,
+					Value:  "standard-recording",
+				},
+			},
+		},
+	}
+
+	match, status := MatchEnrichment(
+		observed,
+		candidates,
+	)
+
+	if status != MatchAccepted {
+		t.Fatalf(
+			"expected unqualified candidate to resolve ambiguity, got %v",
+			status,
+		)
+	}
+
+	if len(match.Track.Identifiers) != 1 {
+		t.Fatalf(
+			"expected one identifier, got %d",
+			len(match.Track.Identifiers),
+		)
+	}
+
+	if match.Track.Identifiers[0].Value !=
+		"standard-recording" {
+
+		t.Errorf(
+			"expected standard recording, got %q",
+			match.Track.Identifiers[0].Value,
+		)
+
+	}
+
+}
+
+func TestMatchEnrichmentRejectsMultipleQualifiedCandidates(
+	t *testing.T,
+) {
+
+	observed := PlaybackItem{
+		Type:   PlaybackTrack,
+		Artist: "Hozier",
+		Title:  "Too Sweet",
+	}
+
+	candidates := []EnrichmentCandidate{
+		{
+			Artist:        "Hozier",
+			Title:         "Too Sweet",
+			Variant:       "live",
+			Provider:      "musicbrainz",
+			ProviderScore: 1,
+		},
+		{
+			Artist:        "Hozier",
+			Title:         "Too Sweet",
+			Variant:       "remix",
+			Provider:      "musicbrainz",
+			ProviderScore: 1,
+		},
+	}
+
+	_, status := MatchEnrichment(
+		observed,
+		candidates,
+	)
+
+	if status != MatchAmbiguous {
+
+		t.Fatalf(
+			"expected ambiguous match, got %v",
+			status,
+		)
+
+	}
+
+}
+
+func TestMatchEnrichmentReturnsNoneForNoCandidates(
+	t *testing.T,
+) {
+
+	observed := PlaybackItem{
+		Type:   PlaybackTrack,
+		Artist: "Hozier",
+		Title:  "Too Sweet",
+	}
+
+	_, status := MatchEnrichment(
+		observed,
+		nil,
+	)
+
+	if status != MatchNone {
+
+		t.Fatalf(
+			"expected no match, got %v",
+			status,
+		)
+
+	}
+
+}
+
+func TestMatchEnrichmentNormalizesQuotationMarks(
+	t *testing.T,
+) {
+
+	observed := PlaybackItem{
+		Type:   PlaybackTrack,
+		Artist: "Bob James",
+		Title:  "Angela Theme (Theme From 'Taxi')",
+	}
+
+	candidates := []EnrichmentCandidate{
+		{
+			Artist:        "Bob James",
+			Title:         `Angela Theme (Theme From "Taxi")`,
+			Provider:      "musicbrainz",
+			ProviderScore: 1,
+			Identifiers: []Identifier{
+				{
+					Scheme: IdentifierMusicBrainz,
+					Value:  "ab63acf1-44f7-46a1-a26b-6a3d030d8179",
+				},
+			},
+		},
+	}
+
+	match, status := MatchEnrichment(
+		observed,
+		candidates,
+	)
+
+	if status != MatchAccepted {
+
+		t.Fatalf(
+			"expected accepted match, got %v",
+			status,
+		)
+
+	}
+
+	if len(match.Track.Identifiers) != 1 {
+
+		t.Fatalf(
+			"expected one identifier, got %d",
+			len(match.Track.Identifiers),
+		)
+
+	}
+
+	if match.Track.Identifiers[0].Value !=
+		"ab63acf1-44f7-46a1-a26b-6a3d030d8179" {
+
+		t.Errorf(
+			"unexpected recording ID %q",
+			match.Track.Identifiers[0].Value,
+		)
+
+	}
+
+}
+
+func TestNormalizeIdentityQuotationMarks(
+	t *testing.T,
+) {
+
+	values := []string{
+		`Angela Theme (Theme From 'Taxi')`,
+		`Angela Theme (Theme From "Taxi")`,
+		`Angela Theme (Theme From “Taxi”)`,
+		`Angela Theme (Theme From ‘Taxi’)`,
+	}
+
+	expected :=
+		"angela theme (theme from taxi)"
+
+	for _, value := range values {
+
+		actual := normalizeIdentity(
+			value,
+		)
+
+		if actual != expected {
+
+			t.Errorf(
+				"expected %q, got %q for %q",
+				expected,
+				actual,
+				value,
+			)
+
+		}
+
+	}
+
+}

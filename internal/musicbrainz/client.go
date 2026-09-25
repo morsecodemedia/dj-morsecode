@@ -93,6 +93,18 @@ type releaseResponse struct {
 	Title   string `json:"title"`
 	Date    string `json:"date"`
 	Country string `json:"country"`
+
+	ReleaseGroup releaseGroupResponse `json:"release-group"`
+}
+
+type releaseGroupResponse struct {
+	ID string `json:"id"`
+
+	Title            string `json:"title"`
+	FirstReleaseDate string `json:"first-release-date"`
+
+	PrimaryType    string   `json:"primary-type"`
+	SecondaryTypes []string `json:"secondary-types"`
 }
 
 type recordingResponse struct {
@@ -291,6 +303,18 @@ func recordingFromResponse(
 				Title:   release.Title,
 				Date:    release.Date,
 				Country: release.Country,
+
+				ReleaseGroup: ReleaseGroup{
+					ID: release.ReleaseGroup.ID,
+
+					Title: release.ReleaseGroup.Title,
+
+					FirstReleaseDate: release.ReleaseGroup.FirstReleaseDate,
+
+					PrimaryType: release.ReleaseGroup.PrimaryType,
+
+					SecondaryTypes: release.ReleaseGroup.SecondaryTypes,
+				},
 			},
 		)
 
@@ -333,7 +357,7 @@ func (c *Client) LookupRecording(
 	values.Set("fmt", "json")
 	values.Set(
 		"inc",
-		"artist-credits+isrcs+releases",
+		"artist-credits+isrcs+releases+release-groups",
 	)
 
 	endpoint.RawQuery = values.Encode()

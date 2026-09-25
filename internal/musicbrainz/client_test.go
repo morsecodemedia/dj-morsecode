@@ -378,7 +378,7 @@ func TestLookupRecording(t *testing.T) {
 
 				if got := r.URL.Query().Get(
 					"inc",
-				); got != "artist-credits+isrcs+releases" {
+				); got != "artist-credits+isrcs+releases+release-groups" {
 
 					t.Errorf(
 						"unexpected inc %q",
@@ -423,11 +423,18 @@ func TestLookupRecording(t *testing.T) {
 						],
 						"releases": [
 							{
-								"id": "release-id",
-								"title": "Unheard",
-								"date": "2024-03-22",
-								"country": "XW"
-							}
+    "id": "release-id",
+    "title": "Unheard",
+    "date": "2024-03-22",
+    "country": "XW",
+    "release-group": {
+        "id": "release-group-id",
+        "title": "Unheard",
+        "first-release-date": "2024-03-22",
+        "primary-type": "EP",
+        "secondary-types": []
+    }
+}
 						]
 					}`),
 				)
@@ -554,6 +561,49 @@ func TestLookupRecording(t *testing.T) {
 			"expected release country %q, got %q",
 			"XW",
 			release.Country,
+		)
+
+	}
+
+	if release.ReleaseGroup.ID !=
+		"release-group-id" {
+
+		t.Errorf(
+			"expected release group ID %q, got %q",
+			"release-group-id",
+			release.ReleaseGroup.ID,
+		)
+
+	}
+
+	if release.ReleaseGroup.Title !=
+		"Unheard" {
+
+		t.Errorf(
+			"expected release group title %q, got %q",
+			"Unheard",
+			release.ReleaseGroup.Title,
+		)
+
+	}
+
+	if release.ReleaseGroup.FirstReleaseDate !=
+		"2024-03-22" {
+
+		t.Errorf(
+			"expected first release date %q, got %q",
+			"2024-03-22",
+			release.ReleaseGroup.FirstReleaseDate,
+		)
+
+	}
+
+	if release.ReleaseGroup.PrimaryType != "EP" {
+
+		t.Errorf(
+			"expected primary type %q, got %q",
+			"EP",
+			release.ReleaseGroup.PrimaryType,
 		)
 
 	}

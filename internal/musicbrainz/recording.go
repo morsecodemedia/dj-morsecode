@@ -22,4 +22,16 @@ type Release struct {
 	Title   string
 	Date    string
 	Country string
+
+	ReleaseGroup ReleaseGroup
+}
+
+type ReleaseGroup struct {
+	ID string
+
+	Title            string
+	FirstReleaseDate string
+
+	PrimaryType    string
+	SecondaryTypes []string
 }

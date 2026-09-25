@@ -136,6 +136,19 @@ func main() {
 				release.ID,
 			)
 
+			if release.ReleaseGroup.ID != "" {
+
+				fmt.Printf(
+					"        Group: %s | %s | %s | %v | %s\n",
+					release.ReleaseGroup.Title,
+					release.ReleaseGroup.FirstReleaseDate,
+					release.ReleaseGroup.PrimaryType,
+					release.ReleaseGroup.SecondaryTypes,
+					release.ReleaseGroup.ID,
+				)
+
+			}
+
 		}
 
 	}

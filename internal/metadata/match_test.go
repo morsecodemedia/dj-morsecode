@@ -464,3 +464,98 @@ func TestMatchEnrichmentReturnsNoneForNoCandidates(
 	}
 
 }
+
+func TestMatchEnrichmentNormalizesQuotationMarks(
+	t *testing.T,
+) {
+
+	observed := PlaybackItem{
+		Type:   PlaybackTrack,
+		Artist: "Bob James",
+		Title:  "Angela Theme (Theme From 'Taxi')",
+	}
+
+	candidates := []EnrichmentCandidate{
+		{
+			Artist:        "Bob James",
+			Title:         `Angela Theme (Theme From "Taxi")`,
+			Provider:      "musicbrainz",
+			ProviderScore: 1,
+			Identifiers: []Identifier{
+				{
+					Scheme: IdentifierMusicBrainz,
+					Value:  "ab63acf1-44f7-46a1-a26b-6a3d030d8179",
+				},
+			},
+		},
+	}
+
+	match, status := MatchEnrichment(
+		observed,
+		candidates,
+	)
+
+	if status != MatchAccepted {
+
+		t.Fatalf(
+			"expected accepted match, got %v",
+			status,
+		)
+
+	}
+
+	if len(match.Track.Identifiers) != 1 {
+
+		t.Fatalf(
+			"expected one identifier, got %d",
+			len(match.Track.Identifiers),
+		)
+
+	}
+
+	if match.Track.Identifiers[0].Value !=
+		"ab63acf1-44f7-46a1-a26b-6a3d030d8179" {
+
+		t.Errorf(
+			"unexpected recording ID %q",
+			match.Track.Identifiers[0].Value,
+		)
+
+	}
+
+}
+
+func TestNormalizeIdentityQuotationMarks(
+	t *testing.T,
+) {
+
+	values := []string{
+		`Angela Theme (Theme From 'Taxi')`,
+		`Angela Theme (Theme From "Taxi")`,
+		`Angela Theme (Theme From “Taxi”)`,
+		`Angela Theme (Theme From ‘Taxi’)`,
+	}
+
+	expected :=
+		"angela theme (theme from taxi)"
+
+	for _, value := range values {
+
+		actual := normalizeIdentity(
+			value,
+		)
+
+		if actual != expected {
+
+			t.Errorf(
+				"expected %q, got %q for %q",
+				expected,
+				actual,
+				value,
+			)
+
+		}
+
+	}
+
+}

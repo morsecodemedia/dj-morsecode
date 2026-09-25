@@ -128,9 +128,30 @@ func sameIdentity(
 	right string,
 ) bool {
 
-	return strings.EqualFold(
-		strings.TrimSpace(left),
-		strings.TrimSpace(right),
+	return normalizeIdentity(left) ==
+		normalizeIdentity(right)
+
+}
+
+func normalizeIdentity(
+	value string,
+) string {
+
+	value = strings.TrimSpace(
+		strings.ToLower(value),
+	)
+
+	replacer := strings.NewReplacer(
+		`"`, "",
+		`'`, "",
+		"“", "",
+		"”", "",
+		"‘", "",
+		"’", "",
+	)
+
+	return replacer.Replace(
+		value,
 	)
 
 }

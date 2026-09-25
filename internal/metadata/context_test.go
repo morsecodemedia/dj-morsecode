@@ -75,33 +75,61 @@ func TestReleaseContextPreservesDatePrecision(
 func TestReleaseEvidence(t *testing.T) {
 
 	evidence := ReleaseEvidence{
-		Title:          "Unheard",
-		Date:           "2024-03-22",
-		ReleaseGroupID: "release-group-id",
-		PrimaryType:    "EP",
+		ReleaseTitle: "Unheard",
+		ReleaseDate:  "2024-03-22",
+
+		GroupID:               "release-group-id",
+		GroupTitle:            "Unheard",
+		GroupFirstReleaseDate: "2024-03-22",
+
+		PrimaryType: "EP",
 		SecondaryTypes: []string{
 			"Compilation",
 		},
+
 		Provider: "musicbrainz",
 	}
 
-	if evidence.Title != "Unheard" {
+	if evidence.ReleaseTitle != "Unheard" {
 		t.Errorf(
-			"expected title %q, got %q",
+			"expected release title %q, got %q",
 			"Unheard",
-			evidence.Title,
+			evidence.ReleaseTitle,
 		)
 	}
 
-	if evidence.ReleaseGroupID !=
-		"release-group-id" {
+	if evidence.ReleaseDate != "2024-03-22" {
+		t.Errorf(
+			"expected release date %q, got %q",
+			"2024-03-22",
+			evidence.ReleaseDate,
+		)
+	}
 
+	if evidence.GroupID != "release-group-id" {
 		t.Errorf(
 			"expected release group ID %q, got %q",
 			"release-group-id",
-			evidence.ReleaseGroupID,
+			evidence.GroupID,
 		)
+	}
 
+	if evidence.GroupTitle != "Unheard" {
+		t.Errorf(
+			"expected release group title %q, got %q",
+			"Unheard",
+			evidence.GroupTitle,
+		)
+	}
+
+	if evidence.GroupFirstReleaseDate !=
+		"2024-03-22" {
+
+		t.Errorf(
+			"expected group first release date %q, got %q",
+			"2024-03-22",
+			evidence.GroupFirstReleaseDate,
+		)
 	}
 
 	if evidence.PrimaryType != "EP" {

@@ -11,10 +11,12 @@ type ReleaseContext struct {
 }
 
 type ReleaseEvidence struct {
-	Title string
-	Date  string
+	ReleaseTitle string
+	ReleaseDate  string
 
-	ReleaseGroupID string
+	GroupID               string
+	GroupTitle            string
+	GroupFirstReleaseDate string
 
 	PrimaryType    string
 	SecondaryTypes []string

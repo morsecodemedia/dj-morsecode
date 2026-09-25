@@ -71,3 +71,60 @@ func TestReleaseContextPreservesDatePrecision(
 	}
 
 }
+
+func TestReleaseEvidence(t *testing.T) {
+
+	evidence := ReleaseEvidence{
+		Title:          "Unheard",
+		Date:           "2024-03-22",
+		ReleaseGroupID: "release-group-id",
+		PrimaryType:    "EP",
+		SecondaryTypes: []string{
+			"Compilation",
+		},
+		Provider: "musicbrainz",
+	}
+
+	if evidence.Title != "Unheard" {
+		t.Errorf(
+			"expected title %q, got %q",
+			"Unheard",
+			evidence.Title,
+		)
+	}
+
+	if evidence.ReleaseGroupID !=
+		"release-group-id" {
+
+		t.Errorf(
+			"expected release group ID %q, got %q",
+			"release-group-id",
+			evidence.ReleaseGroupID,
+		)
+
+	}
+
+	if evidence.PrimaryType != "EP" {
+		t.Errorf(
+			"expected primary type %q, got %q",
+			"EP",
+			evidence.PrimaryType,
+		)
+	}
+
+	if len(evidence.SecondaryTypes) != 1 {
+		t.Fatalf(
+			"expected one secondary type, got %d",
+			len(evidence.SecondaryTypes),
+		)
+	}
+
+	if evidence.Provider != "musicbrainz" {
+		t.Errorf(
+			"expected provider %q, got %q",
+			"musicbrainz",
+			evidence.Provider,
+		)
+	}
+
+}

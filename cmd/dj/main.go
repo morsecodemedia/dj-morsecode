@@ -65,6 +65,8 @@ type model struct {
 	LyricsState        lyricsState
 	EnrichmentService  *enrichment.Service
 	EnrichmentMatch    metadata.EnrichmentMatch
+	TrackContext       metadata.TrackContext
+	ContextProvider    *musicbrainz.ContextProvider
 	StationPickerOpen  bool
 	StationHistoryOpen bool
 	VibePickerOpen     bool
@@ -127,6 +129,8 @@ func (m model) clearTrackState() model {
 	m.Song = music.Song{}
 	m.CurrentCue = 0
 	m.LyricsState = lyricsUnavailable
+
+	m.TrackContext = metadata.TrackContext{}
 
 	return m
 
@@ -201,6 +205,14 @@ type enrichmentMsg struct {
 	Err    error
 }
 
+type contextMsg struct {
+	TrackID string
+
+	Context metadata.TrackContext
+	OK      bool
+	Err     error
+}
+
 const TickRate = time.Second
 
 func tick() tea.Cmd {
@@ -235,6 +247,34 @@ func enrichTrack(
 			TrackID: trackID,
 			Match:   match,
 			Status:  status,
+			Err:     err,
+		}
+
+	}
+
+}
+
+func loadTrackContext(
+	provider *musicbrainz.ContextProvider,
+	trackID string,
+	track metadata.CanonicalTrack,
+) tea.Cmd {
+
+	if provider == nil {
+		return nil
+	}
+
+	return func() tea.Msg {
+
+		result, ok, err := provider.Contextualize(
+			context.Background(),
+			track,
+		)
+
+		return contextMsg{
+			TrackID: trackID,
+			Context: result,
+			OK:      ok,
 			Err:     err,
 		}
 
@@ -820,6 +860,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.CurrentCue = 0
 				m.EnrichmentMatch =
 					metadata.EnrichmentMatch{}
+				m.TrackContext =
+					metadata.TrackContext{}
 
 				enrichmentDuration := time.Duration(0)
 
@@ -938,6 +980,28 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		m.EnrichmentMatch = msg.Match
 
+		return m, loadTrackContext(
+			m.ContextProvider,
+			msg.TrackID,
+			msg.Match.Track,
+		)
+
+	case contextMsg:
+
+		if msg.Err != nil {
+			return m, nil
+		}
+
+		if msg.TrackID != m.LastTrack {
+			return m, nil
+		}
+
+		if !msg.OK {
+			return m, nil
+		}
+
+		m.TrackContext = msg.Context
+
 		return m, nil
 
 	}
@@ -1019,6 +1083,7 @@ func (m model) View() string {
 
 	view := ui.Render(
 		m.Song,
+		m.TrackContext,
 		m.Width,
 		m.OnAir,
 		m.CurrentCue,
@@ -1029,31 +1094,6 @@ func (m model) View() string {
 		intentType,
 		intentName,
 	)
-
-	if m.EnrichmentMatch.Track.Title != "" {
-
-		view += fmt.Sprintf(
-			"\nENRICHED • %s • %.0f%%",
-			m.EnrichmentMatch.Provider,
-			m.EnrichmentMatch.Confidence*100,
-		)
-
-		for _, identifier := range m.EnrichmentMatch.Track.Identifiers {
-
-			if identifier.Scheme ==
-				metadata.IdentifierMusicBrainz {
-
-				view += fmt.Sprintf(
-					"\nMBID • %s",
-					identifier.Value,
-				)
-
-				break
-			}
-
-		}
-
-	}
 
 	return view
 
@@ -1068,6 +1108,11 @@ func main() {
 	musicBrainzEnricher := musicbrainz.NewEnricher(
 		musicBrainzClient,
 	)
+
+	musicBrainzContextProvider :=
+		musicbrainz.NewContextProvider(
+			musicBrainzClient,
+		)
 
 	enrichmentStore := metadata.NewEnrichmentStore()
 
@@ -1134,6 +1179,7 @@ func main() {
 	p := tea.NewProgram(model{
 		Player:            playback,
 		EnrichmentService: enrichmentService,
+		ContextProvider:   musicBrainzContextProvider,
 	})
 
 	if _, err := p.Run(); err != nil {

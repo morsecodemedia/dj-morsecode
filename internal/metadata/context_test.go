@@ -161,7 +161,7 @@ func TestTagEvidence(t *testing.T) {
 
 	evidence := TagEvidence{
 		Name:     "hard rock",
-		Weight:   100,
+		Count:    100,
 		Provider: "lastfm",
 	}
 
@@ -173,11 +173,11 @@ func TestTagEvidence(t *testing.T) {
 		)
 	}
 
-	if evidence.Weight != 100 {
+	if evidence.Count != 100 {
 		t.Errorf(
-			"expected weight %d, got %d",
+			"expected count %d, got %d",
 			100,
-			evidence.Weight,
+			evidence.Count,
 		)
 	}
 

@@ -23,3 +23,11 @@ type ReleaseEvidence struct {
 
 	Provider string
 }
+
+type TagEvidence struct {
+	Name string
+
+	Weight int
+
+	Provider string
+}

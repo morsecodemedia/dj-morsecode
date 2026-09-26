@@ -156,3 +156,37 @@ func TestReleaseEvidence(t *testing.T) {
 	}
 
 }
+
+func TestTagEvidence(t *testing.T) {
+
+	evidence := TagEvidence{
+		Name:     "hard rock",
+		Weight:   100,
+		Provider: "lastfm",
+	}
+
+	if evidence.Name != "hard rock" {
+		t.Errorf(
+			"expected tag name %q, got %q",
+			"hard rock",
+			evidence.Name,
+		)
+	}
+
+	if evidence.Weight != 100 {
+		t.Errorf(
+			"expected weight %d, got %d",
+			100,
+			evidence.Weight,
+		)
+	}
+
+	if evidence.Provider != "lastfm" {
+		t.Errorf(
+			"expected provider %q, got %q",
+			"lastfm",
+			evidence.Provider,
+		)
+	}
+
+}

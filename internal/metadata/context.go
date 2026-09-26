@@ -1,8 +1,18 @@
 package metadata
 
+type ContextTag struct {
+	Name string
+
+	TrackCount  int
+	ArtistCount int
+
+	Providers []string
+}
+
 type TrackContext struct {
 	Release ReleaseContext
 	Genres  []string
+	Tags    []ContextTag
 }
 
 type ReleaseContext struct {

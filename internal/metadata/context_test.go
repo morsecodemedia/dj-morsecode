@@ -13,6 +13,16 @@ func TestTrackContext(t *testing.T) {
 			"indie rock",
 			"soul",
 		},
+		Tags: []ContextTag{
+			{
+				Name:        "soul",
+				TrackCount:  16,
+				ArtistCount: 56,
+				Providers: []string{
+					"lastfm",
+				},
+			},
+		},
 	}
 
 	if context.Release.Title != "Unheard" {
@@ -186,6 +196,48 @@ func TestTagEvidence(t *testing.T) {
 			"expected provider %q, got %q",
 			"lastfm",
 			evidence.Provider,
+		)
+	}
+
+}
+
+func TestContextTag(t *testing.T) {
+
+	tag := ContextTag{
+		Name:        "hard rock",
+		TrackCount:  0,
+		ArtistCount: 100,
+		Providers: []string{
+			"lastfm",
+		},
+	}
+
+	if tag.Name != "hard rock" {
+		t.Errorf(
+			"expected name %q, got %q",
+			"hard rock",
+			tag.Name,
+		)
+	}
+
+	if tag.TrackCount != 0 {
+		t.Errorf(
+			"expected track count 0, got %d",
+			tag.TrackCount,
+		)
+	}
+
+	if tag.ArtistCount != 100 {
+		t.Errorf(
+			"expected artist count 100, got %d",
+			tag.ArtistCount,
+		)
+	}
+
+	if len(tag.Providers) != 1 {
+		t.Fatalf(
+			"expected one provider, got %d",
+			len(tag.Providers),
 		)
 	}
 

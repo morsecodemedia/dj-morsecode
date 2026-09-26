@@ -27,7 +27,7 @@ type ReleaseEvidence struct {
 type TagEvidence struct {
 	Name string
 
-	Weight int
+	Count int
 
 	Provider string
 }

@@ -2,6 +2,7 @@ package lastfm
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/morsecodemedia/dj-morsecode/internal/metadata"
 )
@@ -110,4 +111,18 @@ func (r TagEvidenceResult) HasEvidence() bool {
 func (r TagEvidenceResult) Failed() bool {
 	return r.TrackError != nil &&
 		r.ArtistError != nil
+}
+
+func (r TagEvidenceResult) Error() error {
+
+	if !r.Failed() {
+		return nil
+	}
+
+	return fmt.Errorf(
+		"last.fm tag evidence failed: track: %v; artist: %v",
+		r.TrackError,
+		r.ArtistError,
+	)
+
 }

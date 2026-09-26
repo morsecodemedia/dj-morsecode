@@ -24,10 +24,17 @@ type ReleaseEvidence struct {
 	Provider string
 }
 
-type TagEvidence struct {
-	Name string
+type TagScope string
 
+const (
+	TagScopeTrack  TagScope = "track"
+	TagScopeArtist TagScope = "artist"
+)
+
+type TagEvidence struct {
+	Name  string
 	Count int
+	Scope TagScope
 
 	Provider string
 }

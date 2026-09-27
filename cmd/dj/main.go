@@ -56,36 +56,38 @@ func (s lyricsState) String() string {
 }
 
 type model struct {
-	Width              int
-	Height             int
-	Song               music.Song
-	OnAir              bool
-	CurrentCue         int
-	Player             *player.Player
-	NowPlaying         string
-	LastTrack          string
-	PlaybackItem       metadata.PlaybackItem
-	LyricsState        lyricsState
-	EnrichmentService  *enrichment.Service
-	EnrichmentMatch    metadata.EnrichmentMatch
-	TrackContext       metadata.TrackContext
-	ContextService     *trackcontext.Service
-	ObservationService *observation.Service
-	StationPickerOpen  bool
-	StationHistoryOpen bool
-	VibePickerOpen     bool
-	MoodPickerOpen     bool
-	GenrePickerOpen    bool
-	MoodIndex          int
-	GenreIndex         int
-	VibeIndex          int
-	StationIndex       int
-	CurrentStationID   string
-	StationHistory     radio.History
-	ActiveIntent       radio.Intent
-	PendingStationID   string
-	PendingSince       time.Time
-	FailedStationIDs   []string
+	Width                  int
+	Height                 int
+	Song                   music.Song
+	OnAir                  bool
+	CurrentCue             int
+	Player                 *player.Player
+	NowPlaying             string
+	LastTrack              string
+	PlaybackItem           metadata.PlaybackItem
+	LyricsState            lyricsState
+	EnrichmentService      *enrichment.Service
+	EnrichmentMatch        metadata.EnrichmentMatch
+	TrackContext           metadata.TrackContext
+	ContextService         *trackcontext.Service
+	ObservationService     *observation.Service
+	ObservationHistory     *observation.MemorySink
+	StationPickerOpen      bool
+	StationHistoryOpen     bool
+	ObservationHistoryOpen bool
+	VibePickerOpen         bool
+	MoodPickerOpen         bool
+	GenrePickerOpen        bool
+	MoodIndex              int
+	GenreIndex             int
+	VibeIndex              int
+	StationIndex           int
+	CurrentStationID       string
+	StationHistory         radio.History
+	ActiveIntent           radio.Intent
+	PendingStationID       string
+	PendingSince           time.Time
+	FailedStationIDs       []string
 }
 
 func (m model) CurrentStation() (*radio.Station, bool) {
@@ -647,6 +649,20 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		}
 
+		if m.ObservationHistoryOpen {
+
+			switch key {
+
+			case "esc", "o":
+				m.ObservationHistoryOpen = false
+				return m, nil
+
+			}
+
+			return m, nil
+
+		}
+
 		if m.StationHistoryOpen {
 
 			switch key {
@@ -732,6 +748,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case "h":
 			m.StationHistoryOpen = true
+			return m, nil
+
+		case "o":
+			m.ObservationHistoryOpen = true
 			return m, nil
 
 		case "v":
@@ -1182,6 +1202,26 @@ func (m model) View() string {
 
 	}
 
+	if m.ObservationHistoryOpen {
+
+		if m.ObservationHistory == nil {
+
+			return ui.RenderObservationHistory(
+				nil,
+				nil,
+				m.Width,
+			)
+
+		}
+
+		return ui.RenderObservationHistory(
+			m.ObservationHistory.Stations(),
+			m.ObservationHistory.Playback(),
+			m.Width,
+		)
+
+	}
+
 	if m.StationHistoryOpen {
 
 		return ui.RenderStationHistory(
@@ -1368,6 +1408,7 @@ func main() {
 		EnrichmentService:  enrichmentService,
 		ContextService:     contextService,
 		ObservationService: observationService,
+		ObservationHistory: observationSink,
 	})
 
 	if _, err := p.Run(); err != nil {

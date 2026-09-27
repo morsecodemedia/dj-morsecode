@@ -2,12 +2,14 @@ package ui
 
 import (
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/morsecodemedia/dj-morsecode/internal/metadata"
 	"github.com/morsecodemedia/dj-morsecode/internal/music"
+	"github.com/morsecodemedia/dj-morsecode/internal/observation"
 	"github.com/morsecodemedia/dj-morsecode/internal/player"
 	"github.com/morsecodemedia/dj-morsecode/internal/radio"
 )
@@ -317,6 +319,174 @@ func RenderStationHistory(
 
 	return s.String()
 
+}
+
+func RenderObservationHistory(
+	stations []observation.StationObservation,
+	playback []observation.PlaybackObservation,
+	width int,
+) string {
+
+	if width == 0 {
+		width = 72
+	}
+
+	type historyItem struct {
+		observedAt time.Time
+		label      string
+		detail     string
+	}
+
+	items := make(
+		[]historyItem,
+		0,
+		len(stations)+len(playback),
+	)
+
+	for _, observed := range stations {
+
+		label := strings.ToUpper(
+			string(observed.Kind),
+		)
+
+		detail := observed.StationID
+
+		if station, ok := radio.Find(
+			observed.StationID,
+		); ok {
+
+			detail = station.Name
+		}
+
+		items = append(
+			items,
+			historyItem{
+				observedAt: observed.ObservedAt,
+				label:      label,
+				detail:     detail,
+			},
+		)
+
+	}
+
+	for _, observed := range playback {
+
+		label := strings.ToUpper(
+			string(observed.Item.Type),
+		)
+
+		detail := observed.Item.DisplayTitle()
+
+		if detail == "" {
+			detail = observed.Item.RawTitle
+		}
+
+		items = append(
+			items,
+			historyItem{
+				observedAt: observed.ObservedAt,
+				label:      label,
+				detail:     detail,
+			},
+		)
+
+	}
+
+	sort.Slice(
+		items,
+		func(i int, j int) bool {
+
+			return items[i].observedAt.Before(
+				items[j].observedAt,
+			)
+
+		},
+	)
+
+	var s strings.Builder
+
+	s.WriteString(Divider(width))
+	s.WriteString("\n\n")
+
+	s.WriteString(Center(
+		Header.Render("OBSERVATIONS"),
+		width,
+	))
+
+	s.WriteString("\n")
+
+	s.WriteString(Center(
+		Subtitle.Render(
+			"What DJ MorseCode has witnessed.",
+		),
+		width,
+	))
+
+	s.WriteString("\n\n")
+	s.WriteString(Divider(width))
+	s.WriteString("\n\n")
+
+	if len(items) == 0 {
+
+		s.WriteString(
+			Artist.Render(
+				"No observations yet.",
+			),
+		)
+
+	} else {
+
+		for _, item := range items {
+
+			timestamp := item.observedAt.Format(
+				"15:04:05",
+			)
+
+			s.WriteString(
+				Album.Render(
+					timestamp +
+						"  " +
+						item.label,
+				),
+			)
+
+			s.WriteString("\n")
+
+			if item.detail != "" {
+
+				s.WriteString(
+					Artist.Render(
+						"          " +
+							item.detail,
+					),
+				)
+
+				s.WriteString("\n")
+
+			}
+
+			s.WriteString("\n")
+
+		}
+
+	}
+
+	s.WriteString(Divider(width))
+	s.WriteString("\n\n")
+
+	count := len(items)
+
+	s.WriteString(Center(
+		Footer.Render(
+			fmt.Sprintf(
+				"%d observations • o or esc to return",
+				count,
+			),
+		),
+		width,
+	))
+
+	return s.String()
 }
 
 func RenderVibePicker(

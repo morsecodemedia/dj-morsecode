@@ -236,6 +236,34 @@ func (m model) shouldRotateStation(
 
 }
 
+func (m model) playbackPosition() time.Duration {
+
+	if m.Player == nil {
+		return 0
+	}
+
+	if !m.Player.IsNetwork() {
+		return m.Player.Position()
+	}
+
+	if m.ObservationHistory == nil {
+		return 0
+	}
+
+	elapsed, ok :=
+		m.ObservationHistory.PlaybackElapsed(
+			m.LastTrack,
+			time.Now(),
+		)
+
+	if !ok {
+		return 0
+	}
+
+	return elapsed
+
+}
+
 type tickMsg time.Time
 
 type lrclibSongMsg struct {
@@ -787,7 +815,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case tickMsg:
 
-		position := m.Player.Position()
+		position := m.playbackPosition()
 		duration := m.Player.Duration()
 
 		if duration > 0 {
@@ -1116,7 +1144,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.LyricsState = lyricsRemote
 		m.CurrentCue = player.CurrentCue(
 			m.Song.Timeline,
-			m.Player.Position(),
+			m.playbackPosition(),
 		)
 
 		return m, nil
@@ -1269,7 +1297,7 @@ func (m model) View() string {
 		m.Width,
 		m.OnAir,
 		m.CurrentCue,
-		m.Player.Position(),
+		m.playbackPosition(),
 		m.NowPlaying,
 		m.LyricsState.String(),
 		stationName,

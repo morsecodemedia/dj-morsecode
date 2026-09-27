@@ -7,7 +7,9 @@ import (
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
+	trackcontext "github.com/morsecodemedia/dj-morsecode/internal/context"
 	"github.com/morsecodemedia/dj-morsecode/internal/enrichment"
+	"github.com/morsecodemedia/dj-morsecode/internal/lastfm"
 	"github.com/morsecodemedia/dj-morsecode/internal/library"
 	"github.com/morsecodemedia/dj-morsecode/internal/lrclib"
 	"github.com/morsecodemedia/dj-morsecode/internal/metadata"
@@ -66,7 +68,7 @@ type model struct {
 	EnrichmentService  *enrichment.Service
 	EnrichmentMatch    metadata.EnrichmentMatch
 	TrackContext       metadata.TrackContext
-	ContextProvider    *musicbrainz.ContextProvider
+	ContextService     *trackcontext.Service
 	StationPickerOpen  bool
 	StationHistoryOpen bool
 	VibePickerOpen     bool
@@ -259,18 +261,18 @@ func enrichTrack(
 }
 
 func loadTrackContext(
-	provider *musicbrainz.ContextProvider,
+	task trackcontext.Task,
 	trackID string,
 	track metadata.CanonicalTrack,
 ) tea.Cmd {
 
-	if provider == nil {
+	if task == nil {
 		return nil
 	}
 
 	return func() tea.Msg {
 
-		result, ok, err := provider.Contextualize(
+		result, ok, err := task(
 			context.Background(),
 			track,
 		)
@@ -283,6 +285,43 @@ func loadTrackContext(
 		}
 
 	}
+
+}
+
+func loadTrackContexts(
+	service *trackcontext.Service,
+	trackID string,
+	track metadata.CanonicalTrack,
+) tea.Cmd {
+
+	if service == nil {
+		return nil
+	}
+
+	tasks := service.Tasks()
+
+	commands := make(
+		[]tea.Cmd,
+		0,
+		len(tasks),
+	)
+
+	for _, task := range tasks {
+
+		commands = append(
+			commands,
+			loadTrackContext(
+				task,
+				trackID,
+				track,
+			),
+		)
+
+	}
+
+	return tea.Batch(
+		commands...,
+	)
 
 }
 
@@ -998,19 +1037,19 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		m.EnrichmentMatch = msg.Match
 
-		return m, loadTrackContext(
-			m.ContextProvider,
+		return m, loadTrackContexts(
+			m.ContextService,
 			msg.TrackID,
 			msg.Match.Track,
 		)
 
 	case contextMsg:
 
-		if msg.Err != nil {
+		if msg.TrackID != m.LastTrack {
 			return m, nil
 		}
 
-		if msg.TrackID != m.LastTrack {
+		if msg.Err != nil {
 			return m, nil
 		}
 
@@ -1018,7 +1057,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 
-		m.TrackContext = msg.Context
+		m.TrackContext =
+			metadata.MergeTrackContext(
+				m.TrackContext,
+				msg.Context,
+			)
 
 		return m, nil
 
@@ -1079,7 +1122,8 @@ func (m model) View() string {
 	}
 
 	if m.NowPlaying == "" &&
-		m.CurrentStationID == "" {
+		m.CurrentStationID == "" &&
+		m.PendingStationID == "" {
 
 		return ui.RenderIdle(
 			m.Width,
@@ -1119,6 +1163,10 @@ func (m model) View() string {
 
 func main() {
 
+	lastFMAPIKey := os.Getenv(
+		"LASTFM_API_KEY",
+	)
+
 	musicBrainzClient := musicbrainz.NewClient(
 		"DJ MorseCode/1.0.0 (https://github.com/morsecodemedia/dj-morsecode)",
 	)
@@ -1137,6 +1185,35 @@ func main() {
 	enrichmentService := enrichment.NewService(
 		enrichmentStore,
 		musicBrainzEnricher,
+	)
+
+	var contextProviders []trackcontext.Provider
+
+	contextProviders = append(
+		contextProviders,
+		musicBrainzContextProvider,
+	)
+
+	if lastFMAPIKey != "" {
+
+		lastFMClient := lastfm.NewClient(
+			lastFMAPIKey,
+		)
+
+		lastFMContextProvider :=
+			lastfm.NewContextProvider(
+				lastFMClient,
+			)
+
+		contextProviders = append(
+			contextProviders,
+			lastFMContextProvider,
+		)
+
+	}
+
+	contextService := trackcontext.NewService(
+		contextProviders...,
 	)
 
 	mpvProcess := mpv.NewProcess(
@@ -1197,7 +1274,7 @@ func main() {
 	p := tea.NewProgram(model{
 		Player:            playback,
 		EnrichmentService: enrichmentService,
-		ContextProvider:   musicBrainzContextProvider,
+		ContextService:    contextService,
 	})
 
 	if _, err := p.Run(); err != nil {

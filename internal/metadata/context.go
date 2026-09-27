@@ -48,3 +48,38 @@ type TagEvidence struct {
 
 	Provider string
 }
+
+func MergeTrackContext(
+	current TrackContext,
+	incoming TrackContext,
+) TrackContext {
+
+	if incoming.Release.Title != "" ||
+		incoming.Release.Date != "" {
+
+		current.Release =
+			incoming.Release
+
+	}
+
+	if len(incoming.Tags) > 0 {
+
+		current.Tags = mergeContextTags(
+			current.Tags,
+			incoming.Tags,
+		)
+
+	}
+
+	if len(incoming.Genres) > 0 {
+
+		current.Genres = append(
+			[]string(nil),
+			incoming.Genres...,
+		)
+
+	}
+
+	return current
+
+}

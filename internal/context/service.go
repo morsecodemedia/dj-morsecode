@@ -6,6 +6,40 @@ import (
 	"github.com/morsecodemedia/dj-morsecode/internal/metadata"
 )
 
+type Task func(
+	context.Context,
+	metadata.CanonicalTrack,
+) (
+	metadata.TrackContext,
+	bool,
+	error,
+)
+
+func (s *Service) Tasks() []Task {
+
+	tasks := make(
+		[]Task,
+		0,
+		len(s.providers),
+	)
+
+	for _, provider := range s.providers {
+
+		if provider == nil {
+			continue
+		}
+
+		tasks = append(
+			tasks,
+			provider.Contextualize,
+		)
+
+	}
+
+	return tasks
+
+}
+
 type Provider interface {
 	Contextualize(
 		ctx context.Context,
@@ -84,7 +118,7 @@ func (s *Service) Contextualize(
 			continue
 		}
 
-		result.Context = mergeContext(
+		result.Context = metadata.MergeTrackContext(
 			result.Context,
 			partial,
 		)
@@ -92,125 +126,5 @@ func (s *Service) Contextualize(
 	}
 
 	return result
-
-}
-
-func mergeContext(
-	current metadata.TrackContext,
-	incoming metadata.TrackContext,
-) metadata.TrackContext {
-
-	if current.Release.Title == "" &&
-		current.Release.Date == "" {
-
-		current.Release =
-			incoming.Release
-	}
-
-	current.Tags = mergeTags(
-		current.Tags,
-		incoming.Tags,
-	)
-
-	if len(current.Genres) == 0 &&
-		len(incoming.Genres) > 0 {
-
-		current.Genres = append(
-			[]string(nil),
-			incoming.Genres...,
-		)
-
-	}
-
-	return current
-
-}
-
-func mergeTags(
-	current []metadata.ContextTag,
-	incoming []metadata.ContextTag,
-) []metadata.ContextTag {
-
-	evidence := make(
-		[]metadata.TagEvidence,
-		0,
-		len(current)+len(incoming),
-	)
-
-	for _, tag := range current {
-
-		for _, provider := range tag.Providers {
-
-			if tag.TrackCount > 0 {
-
-				evidence = append(
-					evidence,
-					metadata.TagEvidence{
-						Name:     tag.Name,
-						Count:    tag.TrackCount,
-						Scope:    metadata.TagScopeTrack,
-						Provider: provider,
-					},
-				)
-
-			}
-
-			if tag.ArtistCount > 0 {
-
-				evidence = append(
-					evidence,
-					metadata.TagEvidence{
-						Name:     tag.Name,
-						Count:    tag.ArtistCount,
-						Scope:    metadata.TagScopeArtist,
-						Provider: provider,
-					},
-				)
-
-			}
-
-		}
-
-	}
-
-	for _, tag := range incoming {
-
-		for _, provider := range tag.Providers {
-
-			if tag.TrackCount > 0 {
-
-				evidence = append(
-					evidence,
-					metadata.TagEvidence{
-						Name:     tag.Name,
-						Count:    tag.TrackCount,
-						Scope:    metadata.TagScopeTrack,
-						Provider: provider,
-					},
-				)
-
-			}
-
-			if tag.ArtistCount > 0 {
-
-				evidence = append(
-					evidence,
-					metadata.TagEvidence{
-						Name:     tag.Name,
-						Count:    tag.ArtistCount,
-						Scope:    metadata.TagScopeArtist,
-						Provider: provider,
-					},
-				)
-
-			}
-
-		}
-
-	}
-
-	return metadata.ResolveContextTags(
-		evidence,
-	)
 
 }

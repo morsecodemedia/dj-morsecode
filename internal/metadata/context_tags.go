@@ -131,3 +131,92 @@ func appendProvider(
 	)
 
 }
+
+func mergeContextTags(
+	current []ContextTag,
+	incoming []ContextTag,
+) []ContextTag {
+
+	evidence := make(
+		[]TagEvidence,
+		0,
+		len(current)+len(incoming),
+	)
+
+	for _, tag := range current {
+
+		for _, provider := range tag.Providers {
+
+			if tag.TrackCount > 0 {
+
+				evidence = append(
+					evidence,
+					TagEvidence{
+						Name:     tag.Name,
+						Count:    tag.TrackCount,
+						Scope:    TagScopeTrack,
+						Provider: provider,
+					},
+				)
+
+			}
+
+			if tag.ArtistCount > 0 {
+
+				evidence = append(
+					evidence,
+					TagEvidence{
+						Name:     tag.Name,
+						Count:    tag.ArtistCount,
+						Scope:    TagScopeArtist,
+						Provider: provider,
+					},
+				)
+
+			}
+
+		}
+
+	}
+
+	for _, tag := range incoming {
+
+		for _, provider := range tag.Providers {
+
+			if tag.TrackCount > 0 {
+
+				evidence = append(
+					evidence,
+					TagEvidence{
+						Name:     tag.Name,
+						Count:    tag.TrackCount,
+						Scope:    TagScopeTrack,
+						Provider: provider,
+					},
+				)
+
+			}
+
+			if tag.ArtistCount > 0 {
+
+				evidence = append(
+					evidence,
+					TagEvidence{
+						Name:     tag.Name,
+						Count:    tag.ArtistCount,
+						Scope:    TagScopeArtist,
+						Provider: provider,
+					},
+				)
+
+			}
+
+		}
+
+	}
+
+	return ResolveContextTags(
+		evidence,
+	)
+
+}

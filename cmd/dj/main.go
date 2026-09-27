@@ -15,6 +15,7 @@ import (
 	"github.com/morsecodemedia/dj-morsecode/internal/metadata"
 	"github.com/morsecodemedia/dj-morsecode/internal/music"
 	"github.com/morsecodemedia/dj-morsecode/internal/musicbrainz"
+	"github.com/morsecodemedia/dj-morsecode/internal/observation"
 	"github.com/morsecodemedia/dj-morsecode/internal/player"
 	"github.com/morsecodemedia/dj-morsecode/internal/player/mpv"
 	"github.com/morsecodemedia/dj-morsecode/internal/radio"
@@ -69,6 +70,7 @@ type model struct {
 	EnrichmentMatch    metadata.EnrichmentMatch
 	TrackContext       metadata.TrackContext
 	ContextService     *trackcontext.Service
+	ObservationService *observation.Service
 	StationPickerOpen  bool
 	StationHistoryOpen bool
 	VibePickerOpen     bool
@@ -138,6 +140,40 @@ func (m model) clearTrackState() model {
 
 }
 
+func (m model) observeStation(
+	kind observation.StationKind,
+	stationID string,
+) {
+
+	if m.ObservationService == nil {
+		return
+	}
+
+	_, _, _ = m.ObservationService.ObserveStation(
+		kind,
+		stationID,
+	)
+
+}
+
+func (m model) observePlayback(
+	item metadata.PlaybackItem,
+	stationID string,
+	trackID string,
+) {
+
+	if m.ObservationService == nil {
+		return
+	}
+
+	_, _, _ = m.ObservationService.ObservePlayback(
+		item,
+		stationID,
+		trackID,
+	)
+
+}
+
 func (m model) nextStation() model {
 
 	if !m.ActiveIntent.Active() {
@@ -164,6 +200,10 @@ func (m model) nextStation() model {
 		return m
 	}
 
+	m.observeStation(
+		observation.StationTuneRequested,
+		station.ID,
+	)
 	m.PendingStationID = station.ID
 	m.PendingSince = time.Now()
 	m.PlaybackItem =
@@ -438,6 +478,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return m, nil
 				}
 
+				m.observeStation(
+					observation.StationTuneRequested,
+					station.ID,
+				)
+
 				m.PendingStationID = station.ID
 				m.PendingSince = time.Now()
 
@@ -509,6 +554,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return m, nil
 				}
 
+				m.observeStation(
+					observation.StationTuneRequested,
+					station.ID,
+				)
+
 				m.PendingStationID = station.ID
 				m.PendingSince = time.Now()
 
@@ -578,6 +628,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return m, nil
 				}
 
+				m.observeStation(
+					observation.StationTuneRequested,
+					station.ID,
+				)
+
 				m.PendingStationID = station.ID
 				m.PendingSince = time.Now()
 
@@ -624,6 +679,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if err != nil {
 					return m, nil
 				}
+
+				m.observeStation(
+					observation.StationTuneRequested,
+					station.ID,
+				)
 
 				m.ActiveIntent = radio.Intent{}
 				m.PendingStationID = ""
@@ -818,6 +878,17 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		}
 
+		if isNetwork &&
+			observedPlaybackItem {
+
+			m.observePlayback(
+				m.PlaybackItem,
+				m.CurrentStationID,
+				trackID,
+			)
+
+		}
+
 		if stationFound {
 
 			idle := m.Player.IsIdle()
@@ -834,9 +905,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if station.ID == m.PendingStationID &&
 				!idle {
 
+				m.observeStation(
+					observation.StationTuneConfirmed,
+					station.ID,
+				)
+
 				m.PendingStationID = ""
 				m.PendingSince = time.Time{}
-
 			}
 
 		}
@@ -847,6 +922,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.Player.IsIdle() {
 
 			failedStationID := m.PendingStationID
+
+			m.observeStation(
+				observation.StationTuneFailed,
+				failedStationID,
+			)
 
 			m.PendingStationID = ""
 			m.PendingSince = time.Time{}
@@ -1216,6 +1296,18 @@ func main() {
 		contextProviders...,
 	)
 
+	observationSink :=
+		observation.NewMemorySink()
+
+	observationRecorder :=
+		observation.NewRecorder()
+
+	observationService :=
+		observation.NewService(
+			observationRecorder,
+			observationSink,
+		)
+
 	mpvProcess := mpv.NewProcess(
 		mpvSocketPath,
 	)
@@ -1272,9 +1364,10 @@ func main() {
 	}
 
 	p := tea.NewProgram(model{
-		Player:            playback,
-		EnrichmentService: enrichmentService,
-		ContextService:    contextService,
+		Player:             playback,
+		EnrichmentService:  enrichmentService,
+		ContextService:     contextService,
+		ObservationService: observationService,
 	})
 
 	if _, err := p.Run(); err != nil {

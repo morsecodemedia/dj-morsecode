@@ -7,7 +7,9 @@ import (
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
+	trackcontext "github.com/morsecodemedia/dj-morsecode/internal/context"
 	"github.com/morsecodemedia/dj-morsecode/internal/enrichment"
+	"github.com/morsecodemedia/dj-morsecode/internal/lastfm"
 	"github.com/morsecodemedia/dj-morsecode/internal/library"
 	"github.com/morsecodemedia/dj-morsecode/internal/lrclib"
 	"github.com/morsecodemedia/dj-morsecode/internal/metadata"
@@ -65,6 +67,8 @@ type model struct {
 	LyricsState        lyricsState
 	EnrichmentService  *enrichment.Service
 	EnrichmentMatch    metadata.EnrichmentMatch
+	TrackContext       metadata.TrackContext
+	ContextService     *trackcontext.Service
 	StationPickerOpen  bool
 	StationHistoryOpen bool
 	VibePickerOpen     bool
@@ -128,6 +132,8 @@ func (m model) clearTrackState() model {
 	m.CurrentCue = 0
 	m.LyricsState = lyricsUnavailable
 
+	m.TrackContext = metadata.TrackContext{}
+
 	return m
 
 }
@@ -160,6 +166,10 @@ func (m model) nextStation() model {
 
 	m.PendingStationID = station.ID
 	m.PendingSince = time.Now()
+	m.PlaybackItem =
+		metadata.PlaybackItem{}
+
+	m = m.clearTrackState()
 
 	return m
 
@@ -201,6 +211,14 @@ type enrichmentMsg struct {
 	Err    error
 }
 
+type contextMsg struct {
+	TrackID string
+
+	Context metadata.TrackContext
+	OK      bool
+	Err     error
+}
+
 const TickRate = time.Second
 
 func tick() tea.Cmd {
@@ -239,6 +257,71 @@ func enrichTrack(
 		}
 
 	}
+
+}
+
+func loadTrackContext(
+	task trackcontext.Task,
+	trackID string,
+	track metadata.CanonicalTrack,
+) tea.Cmd {
+
+	if task == nil {
+		return nil
+	}
+
+	return func() tea.Msg {
+
+		result, ok, err := task(
+			context.Background(),
+			track,
+		)
+
+		return contextMsg{
+			TrackID: trackID,
+			Context: result,
+			OK:      ok,
+			Err:     err,
+		}
+
+	}
+
+}
+
+func loadTrackContexts(
+	service *trackcontext.Service,
+	trackID string,
+	track metadata.CanonicalTrack,
+) tea.Cmd {
+
+	if service == nil {
+		return nil
+	}
+
+	tasks := service.Tasks()
+
+	commands := make(
+		[]tea.Cmd,
+		0,
+		len(tasks),
+	)
+
+	for _, task := range tasks {
+
+		commands = append(
+			commands,
+			loadTrackContext(
+				task,
+				trackID,
+				track,
+			),
+		)
+
+	}
+
+	return tea.Batch(
+		commands...,
+	)
 
 }
 
@@ -653,18 +736,22 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			if stationChanged {
 
-				m.PlaybackItem = metadata.PlaybackItem{}
+				m.PlaybackItem =
+					metadata.PlaybackItem{}
+
 				m = m.clearTrackState()
 
 			}
 
 			m.CurrentStationID = station.ID
 
-		} else {
+		} else if m.PendingStationID == "" {
 
 			if m.CurrentStationID != "" {
 
-				m.PlaybackItem = metadata.PlaybackItem{}
+				m.PlaybackItem =
+					metadata.PlaybackItem{}
+
 				m = m.clearTrackState()
 
 			}
@@ -677,6 +764,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			rawTitle,
 		)
 
+		observedPlaybackItem := false
+
 		if isNetwork {
 
 			observedItem := metadata.Normalize(
@@ -685,21 +774,29 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			if observedItem.Observed() {
 
+				observedPlaybackItem = true
 				m.PlaybackItem = observedItem
 
 			}
 
 			if m.PlaybackItem.IsTrack() {
 
-				track.RawTitle = m.PlaybackItem.RawTitle
-				track.Artist = m.PlaybackItem.Artist
-				track.Title = m.PlaybackItem.Title
+				track.RawTitle =
+					m.PlaybackItem.RawTitle
+
+				track.Artist =
+					m.PlaybackItem.Artist
+
+				track.Title =
+					m.PlaybackItem.Title
+
 				track.Valid = true
 
 				album = m.PlaybackItem.Album
 
 				if m.PlaybackItem.Duration > 0 {
-					duration = m.PlaybackItem.Duration
+					duration =
+						m.PlaybackItem.Duration
 				}
 
 				trackID = path +
@@ -716,7 +813,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		} else {
 
-			m.PlaybackItem = metadata.PlaybackItem{}
+			m.PlaybackItem =
+				metadata.PlaybackItem{}
 
 		}
 
@@ -784,12 +882,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		if isNetwork &&
+			observedPlaybackItem &&
 			!m.PlaybackItem.IsTrack() {
 
 			m = m.clearTrackState()
-
 			return m, tick()
-
 		}
 
 		if track.RawTitle == "" {
@@ -820,6 +917,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.CurrentCue = 0
 				m.EnrichmentMatch =
 					metadata.EnrichmentMatch{}
+				m.TrackContext =
+					metadata.TrackContext{}
 
 				enrichmentDuration := time.Duration(0)
 
@@ -938,6 +1037,32 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		m.EnrichmentMatch = msg.Match
 
+		return m, loadTrackContexts(
+			m.ContextService,
+			msg.TrackID,
+			msg.Match.Track,
+		)
+
+	case contextMsg:
+
+		if msg.TrackID != m.LastTrack {
+			return m, nil
+		}
+
+		if msg.Err != nil {
+			return m, nil
+		}
+
+		if !msg.OK {
+			return m, nil
+		}
+
+		m.TrackContext =
+			metadata.MergeTrackContext(
+				m.TrackContext,
+				msg.Context,
+			)
+
 		return m, nil
 
 	}
@@ -997,7 +1122,8 @@ func (m model) View() string {
 	}
 
 	if m.NowPlaying == "" &&
-		m.CurrentStationID == "" {
+		m.CurrentStationID == "" &&
+		m.PendingStationID == "" {
 
 		return ui.RenderIdle(
 			m.Width,
@@ -1019,6 +1145,7 @@ func (m model) View() string {
 
 	view := ui.Render(
 		m.Song,
+		m.TrackContext,
 		m.Width,
 		m.OnAir,
 		m.CurrentCue,
@@ -1030,36 +1157,15 @@ func (m model) View() string {
 		intentName,
 	)
 
-	if m.EnrichmentMatch.Track.Title != "" {
-
-		view += fmt.Sprintf(
-			"\nENRICHED • %s • %.0f%%",
-			m.EnrichmentMatch.Provider,
-			m.EnrichmentMatch.Confidence*100,
-		)
-
-		for _, identifier := range m.EnrichmentMatch.Track.Identifiers {
-
-			if identifier.Scheme ==
-				metadata.IdentifierMusicBrainz {
-
-				view += fmt.Sprintf(
-					"\nMBID • %s",
-					identifier.Value,
-				)
-
-				break
-			}
-
-		}
-
-	}
-
 	return view
 
 }
 
 func main() {
+
+	lastFMAPIKey := os.Getenv(
+		"LASTFM_API_KEY",
+	)
 
 	musicBrainzClient := musicbrainz.NewClient(
 		"DJ MorseCode/1.0.0 (https://github.com/morsecodemedia/dj-morsecode)",
@@ -1069,11 +1175,45 @@ func main() {
 		musicBrainzClient,
 	)
 
+	musicBrainzContextProvider :=
+		musicbrainz.NewContextProvider(
+			musicBrainzClient,
+		)
+
 	enrichmentStore := metadata.NewEnrichmentStore()
 
 	enrichmentService := enrichment.NewService(
 		enrichmentStore,
 		musicBrainzEnricher,
+	)
+
+	var contextProviders []trackcontext.Provider
+
+	contextProviders = append(
+		contextProviders,
+		musicBrainzContextProvider,
+	)
+
+	if lastFMAPIKey != "" {
+
+		lastFMClient := lastfm.NewClient(
+			lastFMAPIKey,
+		)
+
+		lastFMContextProvider :=
+			lastfm.NewContextProvider(
+				lastFMClient,
+			)
+
+		contextProviders = append(
+			contextProviders,
+			lastFMContextProvider,
+		)
+
+	}
+
+	contextService := trackcontext.NewService(
+		contextProviders...,
 	)
 
 	mpvProcess := mpv.NewProcess(
@@ -1134,6 +1274,7 @@ func main() {
 	p := tea.NewProgram(model{
 		Player:            playback,
 		EnrichmentService: enrichmentService,
+		ContextService:    contextService,
 	})
 
 	if _, err := p.Run(); err != nil {

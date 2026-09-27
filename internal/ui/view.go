@@ -2,9 +2,11 @@ package ui
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
+	"github.com/morsecodemedia/dj-morsecode/internal/metadata"
 	"github.com/morsecodemedia/dj-morsecode/internal/music"
 	"github.com/morsecodemedia/dj-morsecode/internal/player"
 	"github.com/morsecodemedia/dj-morsecode/internal/radio"
@@ -75,6 +77,29 @@ func cueMarker(
 
 func upcomingMarker() string {
 	return "·"
+}
+
+func releaseYear(
+	date string,
+) int {
+
+	date = strings.TrimSpace(
+		date,
+	)
+
+	if len(date) < 4 {
+		return 0
+	}
+
+	year, err := strconv.Atoi(
+		date[:4],
+	)
+	if err != nil {
+		return 0
+	}
+
+	return year
+
 }
 
 func RenderMoodPicker(
@@ -516,6 +541,7 @@ func RenderIdle(
 
 func Render(
 	song music.Song,
+	trackContext metadata.TrackContext,
 	width int,
 	onAir bool,
 	currentCue int,
@@ -601,12 +627,40 @@ func Render(
 
 	albumLine := song.Album
 
-	if song.Year != 0 {
-		albumLine += fmt.Sprintf(" • %d", song.Year)
+	if trackContext.Release.Title != "" {
+		albumLine = trackContext.Release.Title
 	}
 
-	s.WriteString(Album.Render(albumLine))
-	s.WriteString("\n")
+	year := song.Year
+
+	if trackContext.Release.Date != "" {
+		year = releaseYear(
+			trackContext.Release.Date,
+		)
+	}
+
+	if year != 0 {
+
+		if albumLine != "" {
+			albumLine += " • "
+		}
+
+		albumLine += fmt.Sprintf(
+			"%d",
+			year,
+		)
+
+	}
+
+	if albumLine != "" {
+
+		s.WriteString(
+			Album.Render(albumLine),
+		)
+
+		s.WriteString("\n")
+
+	}
 
 	transport :=
 		player.FormatDuration(elapsed) +

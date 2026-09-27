@@ -164,6 +164,10 @@ func (m model) nextStation() model {
 
 	m.PendingStationID = station.ID
 	m.PendingSince = time.Now()
+	m.PlaybackItem =
+		metadata.PlaybackItem{}
+
+	m = m.clearTrackState()
 
 	return m
 
@@ -693,18 +697,22 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			if stationChanged {
 
-				m.PlaybackItem = metadata.PlaybackItem{}
+				m.PlaybackItem =
+					metadata.PlaybackItem{}
+
 				m = m.clearTrackState()
 
 			}
 
 			m.CurrentStationID = station.ID
 
-		} else {
+		} else if m.PendingStationID == "" {
 
 			if m.CurrentStationID != "" {
 
-				m.PlaybackItem = metadata.PlaybackItem{}
+				m.PlaybackItem =
+					metadata.PlaybackItem{}
+
 				m = m.clearTrackState()
 
 			}
@@ -717,6 +725,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			rawTitle,
 		)
 
+		observedPlaybackItem := false
+
 		if isNetwork {
 
 			observedItem := metadata.Normalize(
@@ -725,21 +735,29 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			if observedItem.Observed() {
 
+				observedPlaybackItem = true
 				m.PlaybackItem = observedItem
 
 			}
 
 			if m.PlaybackItem.IsTrack() {
 
-				track.RawTitle = m.PlaybackItem.RawTitle
-				track.Artist = m.PlaybackItem.Artist
-				track.Title = m.PlaybackItem.Title
+				track.RawTitle =
+					m.PlaybackItem.RawTitle
+
+				track.Artist =
+					m.PlaybackItem.Artist
+
+				track.Title =
+					m.PlaybackItem.Title
+
 				track.Valid = true
 
 				album = m.PlaybackItem.Album
 
 				if m.PlaybackItem.Duration > 0 {
-					duration = m.PlaybackItem.Duration
+					duration =
+						m.PlaybackItem.Duration
 				}
 
 				trackID = path +
@@ -756,7 +774,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		} else {
 
-			m.PlaybackItem = metadata.PlaybackItem{}
+			m.PlaybackItem =
+				metadata.PlaybackItem{}
 
 		}
 
@@ -824,12 +843,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		if isNetwork &&
+			observedPlaybackItem &&
 			!m.PlaybackItem.IsTrack() {
 
 			m = m.clearTrackState()
-
 			return m, tick()
-
 		}
 
 		if track.RawTitle == "" {

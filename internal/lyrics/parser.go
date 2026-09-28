@@ -198,3 +198,62 @@ func ParseDuration(value string) (time.Duration, error) {
 	return duration, nil
 
 }
+
+func ParseLyrics(
+	lines []string,
+) string {
+
+	var result []string
+
+	for _, line := range lines {
+
+		switch {
+
+		case IsMetadata(line):
+			continue
+
+		case IsLyric(line):
+
+			parts := strings.SplitN(
+				line,
+				"]",
+				2,
+			)
+
+			if len(parts) != 2 {
+				continue
+			}
+
+			result = append(
+				result,
+				strings.TrimSpace(
+					parts[1],
+				),
+			)
+
+		case IsLyricBreak(line):
+
+			result = append(
+				result,
+				"",
+			)
+
+		default:
+
+			result = append(
+				result,
+				line,
+			)
+
+		}
+
+	}
+
+	return strings.TrimSpace(
+		strings.Join(
+			result,
+			"\n",
+		),
+	)
+
+}

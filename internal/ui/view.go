@@ -864,74 +864,35 @@ func Render(
 	s.WriteString(Divider(width))
 	s.WriteString("\n\n")
 
-	if len(song.Timeline) == 0 {
+	if strings.TrimSpace(
+		song.Lyrics,
+	) == "" {
 
-		s.WriteString(Lyric.Render("No timeline loaded."))
+		s.WriteString(
+			Lyric.Render(
+				"No lyrics available.",
+			),
+		)
 
 	} else {
 
-		viewport := BuildViewport(
-			song.Timeline,
-			currentCue,
+		lines := strings.Split(
+			song.Lyrics,
+			"\n",
 		)
 
-		preRoll := false
+		for _, line := range lines {
 
-		if len(viewport) > 0 {
-			preRoll = elapsed < viewport[0].Time
-		}
+			if strings.TrimSpace(line) == "" {
 
-		for i, cue := range viewport {
-
-			if i == 0 {
-
-				switch {
-
-				case preRoll:
-
-					CurrentLyric.Render(
-						cueMarker(cue, true) + " " + cue.Text,
-					)
-					continue
-
-				case cue.Type == music.CueLyric:
-
-					s.WriteString(
-						CurrentLyric.Render(cueMarker(cue, preRoll) + " " + cue.Text),
-					)
-					s.WriteString("\n")
-					continue
-
-				case cue.Type == music.CueBreak:
-
-					s.WriteString(
-						Cue.Render(cueMarker(cue, preRoll)),
-					)
-					s.WriteString("\n")
-					continue
-
-				}
-			}
-
-			switch cue.Type {
-
-			case music.CueLyric:
-
-				prefix := "  "
-
-				if i > 0 {
-					prefix = " " + upcomingMarker() + " "
-				}
-
-				s.WriteString(
-					Lyric.Render(prefix + cue.Text),
-				)
-
-			case music.CueBreak:
-
-				s.WriteString("")
+				s.WriteString("\n")
+				continue
 
 			}
+
+			s.WriteString(
+				Lyric.Render(line),
+			)
 
 			s.WriteString("\n")
 

@@ -32,6 +32,8 @@ func FromLines(lines []string) music.Song {
 
 	metadata := ParseMetadata(lines)
 
+	lyrics := ParseLyrics(lines)
+
 	timeline := ParseTimeline(lines)
 
 	return music.Song{
@@ -39,6 +41,7 @@ func FromLines(lines []string) music.Song {
 		Artist:   metadata.Artist,
 		Album:    metadata.Album,
 		Duration: metadata.Duration,
+		Lyrics:   lyrics,
 		Timeline: timeline,
 	}
 

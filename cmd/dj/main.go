@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -269,11 +270,11 @@ func (m model) playbackPosition() time.Duration {
 type tickMsg time.Time
 
 type lrclibSongMsg struct {
-	TrackID      string
-	Song         music.Song
-	SyncedLyrics string
-	Err          error
-	Duration     time.Duration
+	TrackID  string
+	Song     music.Song
+	Content  string
+	Err      error
+	Duration time.Duration
 }
 
 type enrichmentMsg struct {
@@ -436,11 +437,20 @@ func loadLRCLIBSong(
 			}
 		}
 
+		content := result.SyncedLyrics
+
+		if strings.TrimSpace(
+			content,
+		) == "" {
+
+			content = result.PlainLyrics
+		}
+
 		return lrclibSongMsg{
-			TrackID:      trackID,
-			Duration:     duration,
-			Song:         lrclib.Song(result),
-			SyncedLyrics: result.SyncedLyrics,
+			TrackID:  trackID,
+			Duration: duration,
+			Song:     lrclib.Song(result),
+			Content:  content,
 		}
 
 	}
@@ -1087,7 +1097,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				)
 
 				if ok {
-
+					m.Song.Lyrics = song.Lyrics
 					m.Song.Timeline = song.Timeline
 					m.LyricsState = lyricsLocal
 					m.LastTrack = trackID
@@ -1146,13 +1156,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		_, err := library.Store(
 			m.Song.Artist,
 			m.Song.Title,
-			msg.SyncedLyrics,
+			msg.Content,
 		)
 		if err != nil {
 			m.LyricsState = lyricsUnavailable
 			return m, nil
 		}
 
+		m.Song.Lyrics = msg.Song.Lyrics
 		m.Song.Timeline = msg.Song.Timeline
 		m.LyricsState = lyricsRemote
 		m.CurrentCue = player.CurrentCue(

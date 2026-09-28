@@ -18,6 +18,10 @@ func normalizeIHeart(
 		fields,
 	)
 
+	normalizedTitle := normalizeIHeartRawTitle(
+		rawTitle,
+	)
+
 	item := PlaybackItem{
 		Type:         PlaybackUnknown,
 		RawTitle:     rawTitle,
@@ -25,7 +29,7 @@ func normalizeIHeart(
 	}
 
 	values := parseIHeartFields(
-		rawTitle,
+		normalizedTitle,
 	)
 
 	switch values["song_spot"] {
@@ -120,6 +124,19 @@ func parseIHeartFields(
 	}
 
 	return fields
+
+}
+
+func normalizeIHeartRawTitle(
+	rawTitle string,
+) string {
+
+	return strings.Replace(
+		rawTitle,
+		`url="song_spot="`,
+		`url="" song_spot="`,
+		1,
+	)
 
 }
 

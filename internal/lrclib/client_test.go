@@ -173,7 +173,7 @@ func TestBestMatchRejectsOutsideTolerance(t *testing.T) {
 
 }
 
-func TestBestMatchRequiresSyncedLyrics(t *testing.T) {
+func TestBestMatchAcceptsPlainLyrics(t *testing.T) {
 
 	results := []Result{
 		{
@@ -184,13 +184,48 @@ func TestBestMatchRequiresSyncedLyrics(t *testing.T) {
 		},
 	}
 
+	result, ok := BestMatch(
+		results,
+		194*time.Second,
+	)
+
+	if !ok {
+		t.Fatal("expected plain lyrics match")
+	}
+
+	if result.PlainLyrics !=
+		"Plain lyrics only" {
+
+		t.Errorf(
+			"expected plain lyrics %q, got %q",
+			"Plain lyrics only",
+			result.PlainLyrics,
+		)
+
+	}
+
+}
+
+func TestBestMatchRejectsResultWithoutLyrics(
+	t *testing.T,
+) {
+
+	results := []Result{
+		{
+			ID:       1,
+			Duration: 194,
+		},
+	}
+
 	_, ok := BestMatch(
 		results,
 		194*time.Second,
 	)
 
 	if ok {
-		t.Fatal("expected no match")
+		t.Fatal(
+			"expected result without lyrics to be rejected",
+		)
 	}
 
 }

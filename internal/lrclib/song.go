@@ -1,6 +1,7 @@
 package lrclib
 
 import (
+	"strings"
 	"time"
 
 	"github.com/morsecodemedia/dj-morsecode/internal/lyrics"
@@ -9,8 +10,17 @@ import (
 
 func Song(result Result) music.Song {
 
+	content := result.SyncedLyrics
+
+	if strings.TrimSpace(
+		content,
+	) == "" {
+
+		content = result.PlainLyrics
+	}
+
 	song := lyrics.FromString(
-		result.SyncedLyrics,
+		content,
 	)
 
 	song.Title = result.TrackName

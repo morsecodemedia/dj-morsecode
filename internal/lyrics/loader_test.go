@@ -123,3 +123,57 @@ func TestFromString(t *testing.T) {
 	}
 
 }
+func TestFromStringPreservesReadableLyrics(
+	t *testing.T,
+) {
+
+	song := FromString(
+		"[00:01.00]Hello world\n" +
+			"[00:02.00]Second line",
+	)
+
+	if song.Lyrics !=
+		"Hello world\nSecond line" {
+
+		t.Errorf(
+			"unexpected lyrics %q",
+			song.Lyrics,
+		)
+
+	}
+
+	if len(song.Timeline) != 2 {
+		t.Fatalf(
+			"expected two cues, got %d",
+			len(song.Timeline),
+		)
+	}
+
+}
+
+func TestFromStringAcceptsPlainLyrics(
+	t *testing.T,
+) {
+
+	song := FromString(
+		"Hello world\nSecond line",
+	)
+
+	if song.Lyrics !=
+		"Hello world\nSecond line" {
+
+		t.Errorf(
+			"unexpected lyrics %q",
+			song.Lyrics,
+		)
+
+	}
+
+	if len(song.Timeline) != 0 {
+		t.Fatalf(
+			"expected no timeline, got %d cues",
+			len(song.Timeline),
+		)
+	}
+
+}

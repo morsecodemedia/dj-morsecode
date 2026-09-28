@@ -2,12 +2,14 @@ package ui
 
 import (
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/morsecodemedia/dj-morsecode/internal/metadata"
 	"github.com/morsecodemedia/dj-morsecode/internal/music"
+	"github.com/morsecodemedia/dj-morsecode/internal/observation"
 	"github.com/morsecodemedia/dj-morsecode/internal/player"
 	"github.com/morsecodemedia/dj-morsecode/internal/radio"
 )
@@ -317,6 +319,174 @@ func RenderStationHistory(
 
 	return s.String()
 
+}
+
+func RenderObservationHistory(
+	stations []observation.StationObservation,
+	playback []observation.PlaybackObservation,
+	width int,
+) string {
+
+	if width == 0 {
+		width = 72
+	}
+
+	type historyItem struct {
+		observedAt time.Time
+		label      string
+		detail     string
+	}
+
+	items := make(
+		[]historyItem,
+		0,
+		len(stations)+len(playback),
+	)
+
+	for _, observed := range stations {
+
+		label := strings.ToUpper(
+			string(observed.Kind),
+		)
+
+		detail := observed.StationID
+
+		if station, ok := radio.Find(
+			observed.StationID,
+		); ok {
+
+			detail = station.Name
+		}
+
+		items = append(
+			items,
+			historyItem{
+				observedAt: observed.ObservedAt,
+				label:      label,
+				detail:     detail,
+			},
+		)
+
+	}
+
+	for _, observed := range playback {
+
+		label := strings.ToUpper(
+			string(observed.Item.Type),
+		)
+
+		detail := observed.Item.DisplayTitle()
+
+		if detail == "" {
+			detail = observed.Item.RawTitle
+		}
+
+		items = append(
+			items,
+			historyItem{
+				observedAt: observed.ObservedAt,
+				label:      label,
+				detail:     detail,
+			},
+		)
+
+	}
+
+	sort.Slice(
+		items,
+		func(i int, j int) bool {
+
+			return items[i].observedAt.Before(
+				items[j].observedAt,
+			)
+
+		},
+	)
+
+	var s strings.Builder
+
+	s.WriteString(Divider(width))
+	s.WriteString("\n\n")
+
+	s.WriteString(Center(
+		Header.Render("OBSERVATIONS"),
+		width,
+	))
+
+	s.WriteString("\n")
+
+	s.WriteString(Center(
+		Subtitle.Render(
+			"What DJ MorseCode has witnessed.",
+		),
+		width,
+	))
+
+	s.WriteString("\n\n")
+	s.WriteString(Divider(width))
+	s.WriteString("\n\n")
+
+	if len(items) == 0 {
+
+		s.WriteString(
+			Artist.Render(
+				"No observations yet.",
+			),
+		)
+
+	} else {
+
+		for _, item := range items {
+
+			timestamp := item.observedAt.Format(
+				"15:04:05",
+			)
+
+			s.WriteString(
+				Album.Render(
+					timestamp +
+						"  " +
+						item.label,
+				),
+			)
+
+			s.WriteString("\n")
+
+			if item.detail != "" {
+
+				s.WriteString(
+					Artist.Render(
+						"          " +
+							item.detail,
+					),
+				)
+
+				s.WriteString("\n")
+
+			}
+
+			s.WriteString("\n")
+
+		}
+
+	}
+
+	s.WriteString(Divider(width))
+	s.WriteString("\n\n")
+
+	count := len(items)
+
+	s.WriteString(Center(
+		Footer.Render(
+			fmt.Sprintf(
+				"%d observations • o or esc to return",
+				count,
+			),
+		),
+		width,
+	))
+
+	return s.String()
 }
 
 func RenderVibePicker(
@@ -694,74 +864,35 @@ func Render(
 	s.WriteString(Divider(width))
 	s.WriteString("\n\n")
 
-	if len(song.Timeline) == 0 {
+	if strings.TrimSpace(
+		song.Lyrics,
+	) == "" {
 
-		s.WriteString(Lyric.Render("No timeline loaded."))
+		s.WriteString(
+			Lyric.Render(
+				"No lyrics available.",
+			),
+		)
 
 	} else {
 
-		viewport := BuildViewport(
-			song.Timeline,
-			currentCue,
+		lines := strings.Split(
+			song.Lyrics,
+			"\n",
 		)
 
-		preRoll := false
+		for _, line := range lines {
 
-		if len(viewport) > 0 {
-			preRoll = elapsed < viewport[0].Time
-		}
+			if strings.TrimSpace(line) == "" {
 
-		for i, cue := range viewport {
-
-			if i == 0 {
-
-				switch {
-
-				case preRoll:
-
-					CurrentLyric.Render(
-						cueMarker(cue, true) + " " + cue.Text,
-					)
-					continue
-
-				case cue.Type == music.CueLyric:
-
-					s.WriteString(
-						CurrentLyric.Render(cueMarker(cue, preRoll) + " " + cue.Text),
-					)
-					s.WriteString("\n")
-					continue
-
-				case cue.Type == music.CueBreak:
-
-					s.WriteString(
-						Cue.Render(cueMarker(cue, preRoll)),
-					)
-					s.WriteString("\n")
-					continue
-
-				}
-			}
-
-			switch cue.Type {
-
-			case music.CueLyric:
-
-				prefix := "  "
-
-				if i > 0 {
-					prefix = " " + upcomingMarker() + " "
-				}
-
-				s.WriteString(
-					Lyric.Render(prefix + cue.Text),
-				)
-
-			case music.CueBreak:
-
-				s.WriteString("")
+				s.WriteString("\n")
+				continue
 
 			}
+
+			s.WriteString(
+				Lyric.Render(line),
+			)
 
 			s.WriteString("\n")
 

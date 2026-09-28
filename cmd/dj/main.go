@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -15,6 +16,7 @@ import (
 	"github.com/morsecodemedia/dj-morsecode/internal/metadata"
 	"github.com/morsecodemedia/dj-morsecode/internal/music"
 	"github.com/morsecodemedia/dj-morsecode/internal/musicbrainz"
+	"github.com/morsecodemedia/dj-morsecode/internal/observation"
 	"github.com/morsecodemedia/dj-morsecode/internal/player"
 	"github.com/morsecodemedia/dj-morsecode/internal/player/mpv"
 	"github.com/morsecodemedia/dj-morsecode/internal/radio"
@@ -55,35 +57,39 @@ func (s lyricsState) String() string {
 }
 
 type model struct {
-	Width              int
-	Height             int
-	Song               music.Song
-	OnAir              bool
-	CurrentCue         int
-	Player             *player.Player
-	NowPlaying         string
-	LastTrack          string
-	PlaybackItem       metadata.PlaybackItem
-	LyricsState        lyricsState
-	EnrichmentService  *enrichment.Service
-	EnrichmentMatch    metadata.EnrichmentMatch
-	TrackContext       metadata.TrackContext
-	ContextService     *trackcontext.Service
-	StationPickerOpen  bool
-	StationHistoryOpen bool
-	VibePickerOpen     bool
-	MoodPickerOpen     bool
-	GenrePickerOpen    bool
-	MoodIndex          int
-	GenreIndex         int
-	VibeIndex          int
-	StationIndex       int
-	CurrentStationID   string
-	StationHistory     radio.History
-	ActiveIntent       radio.Intent
-	PendingStationID   string
-	PendingSince       time.Time
-	FailedStationIDs   []string
+	Width                  int
+	Height                 int
+	Song                   music.Song
+	OnAir                  bool
+	CurrentCue             int
+	Player                 *player.Player
+	NowPlaying             string
+	LastTrack              string
+	PlaybackItem           metadata.PlaybackItem
+	LyricsState            lyricsState
+	LyricsLookupDuration   time.Duration
+	EnrichmentService      *enrichment.Service
+	EnrichmentMatch        metadata.EnrichmentMatch
+	TrackContext           metadata.TrackContext
+	ContextService         *trackcontext.Service
+	ObservationService     *observation.Service
+	ObservationHistory     *observation.MemorySink
+	StationPickerOpen      bool
+	StationHistoryOpen     bool
+	ObservationHistoryOpen bool
+	VibePickerOpen         bool
+	MoodPickerOpen         bool
+	GenrePickerOpen        bool
+	MoodIndex              int
+	GenreIndex             int
+	VibeIndex              int
+	StationIndex           int
+	CurrentStationID       string
+	StationHistory         radio.History
+	ActiveIntent           radio.Intent
+	PendingStationID       string
+	PendingSince           time.Time
+	FailedStationIDs       []string
 }
 
 func (m model) CurrentStation() (*radio.Station, bool) {
@@ -131,10 +137,45 @@ func (m model) clearTrackState() model {
 	m.Song = music.Song{}
 	m.CurrentCue = 0
 	m.LyricsState = lyricsUnavailable
+	m.LyricsLookupDuration = 0
 
 	m.TrackContext = metadata.TrackContext{}
 
 	return m
+
+}
+
+func (m model) observeStation(
+	kind observation.StationKind,
+	stationID string,
+) {
+
+	if m.ObservationService == nil {
+		return
+	}
+
+	_, _, _ = m.ObservationService.ObserveStation(
+		kind,
+		stationID,
+	)
+
+}
+
+func (m model) observePlayback(
+	item metadata.PlaybackItem,
+	stationID string,
+	trackID string,
+) {
+
+	if m.ObservationService == nil {
+		return
+	}
+
+	_, _, _ = m.ObservationService.ObservePlayback(
+		item,
+		stationID,
+		trackID,
+	)
 
 }
 
@@ -164,6 +205,10 @@ func (m model) nextStation() model {
 		return m
 	}
 
+	m.observeStation(
+		observation.StationTuneRequested,
+		station.ID,
+	)
 	m.PendingStationID = station.ID
 	m.PendingSince = time.Now()
 	m.PlaybackItem =
@@ -194,13 +239,42 @@ func (m model) shouldRotateStation(
 
 }
 
+func (m model) playbackPosition() time.Duration {
+
+	if m.Player == nil {
+		return 0
+	}
+
+	if !m.Player.IsNetwork() {
+		return m.Player.Position()
+	}
+
+	if m.ObservationHistory == nil {
+		return 0
+	}
+
+	elapsed, ok :=
+		m.ObservationHistory.PlaybackElapsed(
+			m.LastTrack,
+			time.Now(),
+		)
+
+	if !ok {
+		return 0
+	}
+
+	return elapsed
+
+}
+
 type tickMsg time.Time
 
 type lrclibSongMsg struct {
-	TrackID      string
-	Song         music.Song
-	SyncedLyrics string
-	Err          error
+	TrackID  string
+	Song     music.Song
+	Content  string
+	Err      error
+	Duration time.Duration
 }
 
 type enrichmentMsg struct {
@@ -342,8 +416,9 @@ func loadLRCLIBSong(
 		)
 		if err != nil {
 			return lrclibSongMsg{
-				TrackID: trackID,
-				Err:     err,
+				TrackID:  trackID,
+				Duration: duration,
+				Err:      err,
 			}
 		}
 
@@ -353,7 +428,8 @@ func loadLRCLIBSong(
 		)
 		if !ok {
 			return lrclibSongMsg{
-				TrackID: trackID,
+				TrackID:  trackID,
+				Duration: duration,
 				Err: fmt.Errorf(
 					"no LRCLIB match for %s",
 					title,
@@ -361,10 +437,20 @@ func loadLRCLIBSong(
 			}
 		}
 
+		content := result.SyncedLyrics
+
+		if strings.TrimSpace(
+			content,
+		) == "" {
+
+			content = result.PlainLyrics
+		}
+
 		return lrclibSongMsg{
-			TrackID:      trackID,
-			Song:         lrclib.Song(result),
-			SyncedLyrics: result.SyncedLyrics,
+			TrackID:  trackID,
+			Duration: duration,
+			Song:     lrclib.Song(result),
+			Content:  content,
 		}
 
 	}
@@ -438,6 +524,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return m, nil
 				}
 
+				m.observeStation(
+					observation.StationTuneRequested,
+					station.ID,
+				)
+
 				m.PendingStationID = station.ID
 				m.PendingSince = time.Now()
 
@@ -509,6 +600,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return m, nil
 				}
 
+				m.observeStation(
+					observation.StationTuneRequested,
+					station.ID,
+				)
+
 				m.PendingStationID = station.ID
 				m.PendingSince = time.Now()
 
@@ -578,12 +674,31 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return m, nil
 				}
 
+				m.observeStation(
+					observation.StationTuneRequested,
+					station.ID,
+				)
+
 				m.PendingStationID = station.ID
 				m.PendingSince = time.Now()
 
 				m.ActiveIntent = intent
 				m.VibePickerOpen = false
 
+				return m, nil
+
+			}
+
+			return m, nil
+
+		}
+
+		if m.ObservationHistoryOpen {
+
+			switch key {
+
+			case "esc", "o":
+				m.ObservationHistoryOpen = false
 				return m, nil
 
 			}
@@ -624,6 +739,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if err != nil {
 					return m, nil
 				}
+
+				m.observeStation(
+					observation.StationTuneRequested,
+					station.ID,
+				)
 
 				m.ActiveIntent = radio.Intent{}
 				m.PendingStationID = ""
@@ -674,6 +794,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.StationHistoryOpen = true
 			return m, nil
 
+		case "o":
+			m.ObservationHistoryOpen = true
+			return m, nil
+
 		case "v":
 			m.VibePickerOpen = true
 			m.VibeIndex = 0
@@ -707,7 +831,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case tickMsg:
 
-		position := m.Player.Position()
+		position := m.playbackPosition()
 		duration := m.Player.Duration()
 
 		if duration > 0 {
@@ -818,6 +942,17 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		}
 
+		if isNetwork &&
+			observedPlaybackItem {
+
+			m.observePlayback(
+				m.PlaybackItem,
+				m.CurrentStationID,
+				trackID,
+			)
+
+		}
+
 		if stationFound {
 
 			idle := m.Player.IsIdle()
@@ -834,9 +969,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if station.ID == m.PendingStationID &&
 				!idle {
 
+				m.observeStation(
+					observation.StationTuneConfirmed,
+					station.ID,
+				)
+
 				m.PendingStationID = ""
 				m.PendingSince = time.Time{}
-
 			}
 
 		}
@@ -847,6 +986,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.Player.IsIdle() {
 
 			failedStationID := m.PendingStationID
+
+			m.observeStation(
+				observation.StationTuneFailed,
+				failedStationID,
+			)
 
 			m.PendingStationID = ""
 			m.PendingSince = time.Time{}
@@ -953,7 +1097,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				)
 
 				if ok {
-
+					m.Song.Lyrics = song.Lyrics
 					m.Song.Timeline = song.Timeline
 					m.LyricsState = lyricsLocal
 					m.LastTrack = trackID
@@ -967,6 +1111,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 				m.LastTrack = trackID
 				m.LyricsState = lyricsSearching
+				m.LyricsLookupDuration = duration
 
 				return m, tea.Batch(
 					tick(),
@@ -997,6 +1142,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 
+		if msg.Duration !=
+			m.LyricsLookupDuration {
+
+			return m, nil
+		}
+
 		if msg.Err != nil {
 			m.LyricsState = lyricsUnavailable
 			return m, nil
@@ -1005,18 +1156,19 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		_, err := library.Store(
 			m.Song.Artist,
 			m.Song.Title,
-			msg.SyncedLyrics,
+			msg.Content,
 		)
 		if err != nil {
 			m.LyricsState = lyricsUnavailable
 			return m, nil
 		}
 
+		m.Song.Lyrics = msg.Song.Lyrics
 		m.Song.Timeline = msg.Song.Timeline
 		m.LyricsState = lyricsRemote
 		m.CurrentCue = player.CurrentCue(
 			m.Song.Timeline,
-			m.Player.Position(),
+			m.playbackPosition(),
 		)
 
 		return m, nil
@@ -1037,10 +1189,40 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		m.EnrichmentMatch = msg.Match
 
-		return m, loadTrackContexts(
+		contextCmd := loadTrackContexts(
 			m.ContextService,
 			msg.TrackID,
 			msg.Match.Track,
+		)
+
+		if msg.Match.Duration <= 0 ||
+			msg.Match.Duration == m.LyricsLookupDuration {
+
+			return m, contextCmd
+		}
+
+		if m.LyricsState == lyricsLocal ||
+			m.LyricsState == lyricsRemote {
+
+			return m, contextCmd
+		}
+
+		m.LyricsLookupDuration =
+			msg.Match.Duration
+
+		m.LyricsState =
+			lyricsSearching
+
+		lyricsCmd := loadLRCLIBSong(
+			msg.TrackID,
+			msg.Match.Track.Artist,
+			msg.Match.Track.Title,
+			msg.Match.Duration,
+		)
+
+		return m, tea.Batch(
+			contextCmd,
+			lyricsCmd,
 		)
 
 	case contextMsg:
@@ -1102,6 +1284,26 @@ func (m model) View() string {
 
 	}
 
+	if m.ObservationHistoryOpen {
+
+		if m.ObservationHistory == nil {
+
+			return ui.RenderObservationHistory(
+				nil,
+				nil,
+				m.Width,
+			)
+
+		}
+
+		return ui.RenderObservationHistory(
+			m.ObservationHistory.Stations(),
+			m.ObservationHistory.Playback(),
+			m.Width,
+		)
+
+	}
+
 	if m.StationHistoryOpen {
 
 		return ui.RenderStationHistory(
@@ -1149,7 +1351,7 @@ func (m model) View() string {
 		m.Width,
 		m.OnAir,
 		m.CurrentCue,
-		m.Player.Position(),
+		m.playbackPosition(),
 		m.NowPlaying,
 		m.LyricsState.String(),
 		stationName,
@@ -1216,6 +1418,18 @@ func main() {
 		contextProviders...,
 	)
 
+	observationSink :=
+		observation.NewMemorySink()
+
+	observationRecorder :=
+		observation.NewRecorder()
+
+	observationService :=
+		observation.NewService(
+			observationRecorder,
+			observationSink,
+		)
+
 	mpvProcess := mpv.NewProcess(
 		mpvSocketPath,
 	)
@@ -1272,9 +1486,11 @@ func main() {
 	}
 
 	p := tea.NewProgram(model{
-		Player:            playback,
-		EnrichmentService: enrichmentService,
-		ContextService:    contextService,
+		Player:             playback,
+		EnrichmentService:  enrichmentService,
+		ContextService:     contextService,
+		ObservationService: observationService,
+		ObservationHistory: observationSink,
 	})
 
 	if _, err := p.Run(); err != nil {

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 )
 
@@ -34,7 +35,13 @@ func BestMatch(
 
 	for _, result := range results {
 
-		if result.SyncedLyrics == "" {
+		if strings.TrimSpace(
+			result.SyncedLyrics,
+		) == "" &&
+			strings.TrimSpace(
+				result.PlainLyrics,
+			) == "" {
+
 			continue
 		}
 

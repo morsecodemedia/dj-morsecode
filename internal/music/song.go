@@ -21,6 +21,6 @@ type Song struct {
 	Album    string
 	Year     int
 	Duration time.Duration
-
+	Lyrics   string
 	Timeline []Cue
 }

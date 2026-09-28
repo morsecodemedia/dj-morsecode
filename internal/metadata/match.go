@@ -83,6 +83,9 @@ func MatchEnrichment(
 
 			Identifiers: candidate.Identifiers,
 		},
+
+		Duration: candidate.Duration,
+
 		Provider:   candidate.Provider,
 		Confidence: candidate.ProviderScore,
 	}, MatchAccepted

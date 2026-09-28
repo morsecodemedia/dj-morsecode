@@ -36,6 +36,8 @@ type EnrichmentCandidate struct {
 type EnrichmentMatch struct {
 	Track CanonicalTrack
 
+	Duration time.Duration
+
 	Provider   string
 	Confidence float64
 }

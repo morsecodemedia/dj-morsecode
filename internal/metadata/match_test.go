@@ -394,6 +394,16 @@ func TestMatchEnrichmentPrefersSingleUnqualifiedCandidate(
 
 	}
 
+	if match.Duration != 251*time.Second {
+
+		t.Errorf(
+			"expected duration %s, got %s",
+			251*time.Second,
+			match.Duration,
+		)
+
+	}
+
 }
 
 func TestMatchEnrichmentRejectsMultipleQualifiedCandidates(

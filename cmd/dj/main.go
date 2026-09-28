@@ -845,6 +845,44 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			}
 
+			switch m.CommandMode {
+
+			case commandModeTune:
+
+				switch key {
+
+				case "s":
+					m = m.leaveCommandMode()
+					m.StationPickerOpen = true
+					m.StationIndex = 0
+
+					return m, nil
+
+				case "g":
+					m = m.leaveCommandMode()
+					m.GenrePickerOpen = true
+					m.GenreIndex = 0
+
+					return m, nil
+
+				case "m":
+					m = m.leaveCommandMode()
+					m.MoodPickerOpen = true
+					m.MoodIndex = 0
+
+					return m, nil
+
+				case "v":
+					m = m.leaveCommandMode()
+					m.VibePickerOpen = true
+					m.VibeIndex = 0
+
+					return m, nil
+
+				}
+
+			}
+
 			return m, nil
 		}
 
@@ -853,36 +891,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "ctrl+c", "q":
 			return m, tea.Quit
 
-		case "s":
-			m.StationPickerOpen = true
-			m.StationIndex = 0
-
-			return m, nil
-
 		case "h":
 			m.StationHistoryOpen = true
 			return m, nil
 
 		case "o":
 			m.ObservationHistoryOpen = true
-			return m, nil
-
-		case "v":
-			m.VibePickerOpen = true
-			m.VibeIndex = 0
-
-			return m, nil
-
-		case "m":
-			m.MoodPickerOpen = true
-			m.MoodIndex = 0
-
-			return m, nil
-
-		case "g":
-			m.GenrePickerOpen = true
-			m.GenreIndex = 0
-
 			return m, nil
 
 		case "n":

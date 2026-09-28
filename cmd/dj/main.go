@@ -881,6 +881,24 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 				}
 
+			case commandModeInfo:
+
+				switch key {
+
+				case "o":
+					m = m.leaveCommandMode()
+					m.ObservationHistoryOpen = true
+
+					return m, nil
+
+				case "h":
+					m = m.leaveCommandMode()
+					m.StationHistoryOpen = true
+
+					return m, nil
+
+				}
+
 			}
 
 			return m, nil
@@ -890,14 +908,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case "ctrl+c", "q":
 			return m, tea.Quit
-
-		case "h":
-			m.StationHistoryOpen = true
-			return m, nil
-
-		case "o":
-			m.ObservationHistoryOpen = true
-			return m, nil
 
 		case "n":
 			m = m.nextStation()

@@ -26,6 +26,7 @@ func renderTestTrack(
 		"",
 		"",
 		"",
+		"c controls • t tune • e enhancements • i info • q sign off",
 	)
 
 }

@@ -56,6 +56,16 @@ func (s lyricsState) String() string {
 
 }
 
+type commandMode int
+
+const (
+	commandModeNone commandMode = iota
+	commandModeControls
+	commandModeTune
+	commandModeEnhancements
+	commandModeInfo
+)
+
 type model struct {
 	Width                  int
 	Height                 int
@@ -74,6 +84,7 @@ type model struct {
 	ContextService         *trackcontext.Service
 	ObservationService     *observation.Service
 	ObservationHistory     *observation.MemorySink
+	CommandMode            commandMode
 	StationPickerOpen      bool
 	StationHistoryOpen     bool
 	ObservationHistoryOpen bool
@@ -264,6 +275,50 @@ func (m model) playbackPosition() time.Duration {
 	}
 
 	return elapsed
+
+}
+
+func (m model) enterCommandMode(
+	mode commandMode,
+) model {
+
+	m.CommandMode = mode
+
+	return m
+}
+
+func (m model) leaveCommandMode() model {
+
+	m.CommandMode = commandModeNone
+
+	return m
+}
+
+func (m model) footerText() string {
+
+	switch m.CommandMode {
+
+	case commandModeControls:
+
+		return "CONTROLS • b previous • n next • p play/pause • m mute • v volume • esc cancel"
+
+	case commandModeTune:
+
+		return "TUNE • s stations • g genres • m moods • v vibes • esc cancel"
+
+	case commandModeEnhancements:
+
+		return "ENHANCEMENTS • l lyrics • t trivia • esc cancel"
+
+	case commandModeInfo:
+
+		return "INFO • o observations • h history • esc cancel"
+
+	default:
+
+		return "c controls • t tune • e enhancements • i info • q sign off"
+
+	}
 
 }
 
@@ -779,6 +834,20 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		}
 
+		if m.CommandMode !=
+			commandModeNone {
+
+			switch key {
+
+			case "esc":
+				m = m.leaveCommandMode()
+				return m, nil
+
+			}
+
+			return m, nil
+		}
+
 		switch key {
 
 		case "ctrl+c", "q":
@@ -818,6 +887,30 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case "n":
 			m = m.nextStation()
+			return m, nil
+
+		case "c":
+			m = m.enterCommandMode(
+				commandModeControls,
+			)
+			return m, nil
+
+		case "t":
+			m = m.enterCommandMode(
+				commandModeTune,
+			)
+			return m, nil
+
+		case "e":
+			m = m.enterCommandMode(
+				commandModeEnhancements,
+			)
+			return m, nil
+
+		case "i":
+			m = m.enterCommandMode(
+				commandModeInfo,
+			)
 			return m, nil
 
 		}
@@ -1329,6 +1422,7 @@ func (m model) View() string {
 
 		return ui.RenderIdle(
 			m.Width,
+			m.footerText(),
 		)
 
 	}
@@ -1357,6 +1451,7 @@ func (m model) View() string {
 		stationName,
 		intentType,
 		intentName,
+		m.footerText(),
 	)
 
 	return view

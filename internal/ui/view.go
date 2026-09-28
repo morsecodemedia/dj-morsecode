@@ -623,6 +623,7 @@ func RenderStationPicker(
 
 func RenderIdle(
 	width int,
+	footer string,
 ) string {
 
 	if width == 0 {
@@ -700,7 +701,7 @@ func RenderIdle(
 
 	s.WriteString(Center(
 		Footer.Render(
-			"s stations • v vibes • m moods • g genres • h history • q sign off",
+			footer,
 		),
 		width,
 	))
@@ -721,6 +722,7 @@ func Render(
 	stationName string,
 	intentType string,
 	intentName string,
+	footer string,
 ) string {
 
 	if width == 0 {
@@ -905,7 +907,9 @@ func Render(
 	s.WriteString("\n\n")
 
 	s.WriteString(Center(
-		Footer.Render("s stations • v vibes • m moods • g genres • n next • h history • q sign off"),
+		Footer.Render(
+			footer,
+		),
 		width,
 	))
 

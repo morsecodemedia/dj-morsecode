@@ -66,6 +66,7 @@ type model struct {
 	LastTrack              string
 	PlaybackItem           metadata.PlaybackItem
 	LyricsState            lyricsState
+	LyricsLookupDuration   time.Duration
 	EnrichmentService      *enrichment.Service
 	EnrichmentMatch        metadata.EnrichmentMatch
 	TrackContext           metadata.TrackContext
@@ -135,6 +136,7 @@ func (m model) clearTrackState() model {
 	m.Song = music.Song{}
 	m.CurrentCue = 0
 	m.LyricsState = lyricsUnavailable
+	m.LyricsLookupDuration = 0
 
 	m.TrackContext = metadata.TrackContext{}
 
@@ -271,6 +273,7 @@ type lrclibSongMsg struct {
 	Song         music.Song
 	SyncedLyrics string
 	Err          error
+	Duration     time.Duration
 }
 
 type enrichmentMsg struct {
@@ -412,8 +415,9 @@ func loadLRCLIBSong(
 		)
 		if err != nil {
 			return lrclibSongMsg{
-				TrackID: trackID,
-				Err:     err,
+				TrackID:  trackID,
+				Duration: duration,
+				Err:      err,
 			}
 		}
 
@@ -423,7 +427,8 @@ func loadLRCLIBSong(
 		)
 		if !ok {
 			return lrclibSongMsg{
-				TrackID: trackID,
+				TrackID:  trackID,
+				Duration: duration,
 				Err: fmt.Errorf(
 					"no LRCLIB match for %s",
 					title,
@@ -433,6 +438,7 @@ func loadLRCLIBSong(
 
 		return lrclibSongMsg{
 			TrackID:      trackID,
+			Duration:     duration,
 			Song:         lrclib.Song(result),
 			SyncedLyrics: result.SyncedLyrics,
 		}
@@ -1095,6 +1101,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 				m.LastTrack = trackID
 				m.LyricsState = lyricsSearching
+				m.LyricsLookupDuration = duration
 
 				return m, tea.Batch(
 					tick(),
@@ -1122,6 +1129,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case lrclibSongMsg:
 
 		if msg.TrackID != m.LastTrack {
+			return m, nil
+		}
+
+		if msg.Duration !=
+			m.LyricsLookupDuration {
+
 			return m, nil
 		}
 
@@ -1165,10 +1178,40 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		m.EnrichmentMatch = msg.Match
 
-		return m, loadTrackContexts(
+		contextCmd := loadTrackContexts(
 			m.ContextService,
 			msg.TrackID,
 			msg.Match.Track,
+		)
+
+		if msg.Match.Duration <= 0 ||
+			msg.Match.Duration == m.LyricsLookupDuration {
+
+			return m, contextCmd
+		}
+
+		if m.LyricsState == lyricsLocal ||
+			m.LyricsState == lyricsRemote {
+
+			return m, contextCmd
+		}
+
+		m.LyricsLookupDuration =
+			msg.Match.Duration
+
+		m.LyricsState =
+			lyricsSearching
+
+		lyricsCmd := loadLRCLIBSong(
+			msg.TrackID,
+			msg.Match.Track.Artist,
+			msg.Match.Track.Title,
+			msg.Match.Duration,
+		)
+
+		return m, tea.Batch(
+			contextCmd,
+			lyricsCmd,
 		)
 
 	case contextMsg:

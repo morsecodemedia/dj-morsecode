@@ -78,6 +78,7 @@ type model struct {
 	PlaybackItem           metadata.PlaybackItem
 	LyricsState            lyricsState
 	LyricsLookupDuration   time.Duration
+	LyricsVisible          bool
 	EnrichmentService      *enrichment.Service
 	EnrichmentMatch        metadata.EnrichmentMatch
 	TrackContext           metadata.TrackContext
@@ -899,6 +900,20 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 				}
 
+			case commandModeEnhancements:
+
+				switch key {
+
+				case "l":
+					m.LyricsVisible =
+						!m.LyricsVisible
+
+					m = m.leaveCommandMode()
+
+					return m, nil
+
+				}
+
 			}
 
 			return m, nil
@@ -1472,6 +1487,7 @@ func (m model) View() string {
 		m.playbackPosition(),
 		m.NowPlaying,
 		m.LyricsState.String(),
+		m.LyricsVisible,
 		stationName,
 		intentType,
 		intentName,
@@ -1610,6 +1626,7 @@ func main() {
 		ContextService:     contextService,
 		ObservationService: observationService,
 		ObservationHistory: observationSink,
+		LyricsVisible:      true,
 	})
 
 	if _, err := p.Run(); err != nil {

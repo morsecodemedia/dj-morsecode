@@ -23,6 +23,7 @@ func renderTestTrack(
 		30*time.Second,
 		"",
 		"UNAVAILABLE",
+		true,
 		"",
 		"",
 		"",
@@ -159,6 +160,50 @@ func TestRenderTrackContextDisplaysReleaseYear(
 			"expected UI to display year rather than full release date",
 		)
 
+	}
+
+}
+
+func TestRenderHidesLyrics(
+	t *testing.T,
+) {
+
+	view := Render(
+		music.Song{
+			Lyrics: "Secret lyric",
+		},
+		metadata.TrackContext{},
+		72,
+		true,
+		0,
+		0,
+		"Artist - Track",
+		"LRCLIB",
+		false,
+		"Station",
+		"",
+		"",
+		"footer",
+	)
+
+	if strings.Contains(
+		view,
+		"Secret lyric",
+	) {
+
+		t.Fatal(
+			"expected lyrics to be hidden",
+		)
+	}
+
+	if strings.Contains(
+		view,
+		"LYRICS",
+	) {
+
+		t.Fatal(
+			"expected lyrics section to be hidden",
+		)
 	}
 
 }

@@ -924,6 +924,36 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 					return m, nil
 
+				case "p":
+
+					paused := m.Player.Paused()
+
+					if err := m.Player.SetPaused(
+						!paused,
+					); err != nil {
+
+						return m, nil
+					}
+
+					m = m.leaveCommandMode()
+
+					return m, nil
+
+				case "m":
+
+					muted := m.Player.Muted()
+
+					if err := m.Player.SetMuted(
+						!muted,
+					); err != nil {
+
+						return m, nil
+					}
+
+					m = m.leaveCommandMode()
+
+					return m, nil
+
 				}
 
 			}

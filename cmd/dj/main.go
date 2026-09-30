@@ -914,6 +914,18 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 				}
 
+			case commandModeControls:
+
+				switch key {
+
+				case "n":
+					m = m.leaveCommandMode()
+					m = m.nextStation()
+
+					return m, nil
+
+				}
+
 			}
 
 			return m, nil
@@ -923,10 +935,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case "ctrl+c", "q":
 			return m, tea.Quit
-
-		case "n":
-			m = m.nextStation()
-			return m, nil
 
 		case "c":
 			m = m.enterCommandMode(

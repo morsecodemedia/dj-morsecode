@@ -338,6 +338,25 @@ func (c *Client) SetMuted(
 
 }
 
+func (c *Client) Volume() (float64, error) {
+
+	return c.floatProperty(
+		"volume",
+	)
+
+}
+
+func (c *Client) SetVolume(
+	volume float64,
+) error {
+
+	return c.setProperty(
+		"volume",
+		volume,
+	)
+
+}
+
 func (c *Client) Load(path string) error {
 
 	return c.loadFile(path)

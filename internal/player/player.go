@@ -204,3 +204,24 @@ func (p *Player) SetMuted(
 	)
 
 }
+
+func (p *Player) Volume() float64 {
+
+	volume, err := p.client.Volume()
+	if err != nil {
+		return 0
+	}
+
+	return volume
+
+}
+
+func (p *Player) SetVolume(
+	volume float64,
+) error {
+
+	return p.client.SetVolume(
+		volume,
+	)
+
+}

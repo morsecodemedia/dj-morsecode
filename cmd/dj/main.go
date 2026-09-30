@@ -64,6 +64,7 @@ const (
 	commandModeTune
 	commandModeEnhancements
 	commandModeInfo
+	commandModeVolume
 )
 
 type model struct {
@@ -302,6 +303,10 @@ func (m model) footerText() string {
 	case commandModeControls:
 
 		return "CONTROLS • b previous • n next • p play/pause • m mute • v volume • esc cancel"
+
+	case commandModeVolume:
+
+		return "VOLUME • ↑ louder • ↓ quieter • esc back"
 
 	case commandModeTune:
 
@@ -841,7 +846,19 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			switch key {
 
 			case "esc":
+
+				if m.CommandMode ==
+					commandModeVolume {
+
+					m = m.enterCommandMode(
+						commandModeControls,
+					)
+
+					return m, nil
+				}
+
 				m = m.leaveCommandMode()
+
 				return m, nil
 
 			}
@@ -954,8 +971,54 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 					return m, nil
 
-				}
+				case "v":
 
+					m = m.enterCommandMode(
+						commandModeVolume,
+					)
+
+					return m, nil
+
+				}
+			case commandModeVolume:
+
+				switch key {
+
+				case "up":
+
+					volume := m.Player.Volume() + 5
+
+					if volume > 100 {
+						volume = 100
+					}
+
+					if err := m.Player.SetVolume(
+						volume,
+					); err != nil {
+
+						return m, nil
+					}
+
+					return m, nil
+
+				case "down":
+
+					volume := m.Player.Volume() - 5
+
+					if volume < 0 {
+						volume = 0
+					}
+
+					if err := m.Player.SetVolume(
+						volume,
+					); err != nil {
+
+						return m, nil
+					}
+
+					return m, nil
+
+				}
 			}
 
 			return m, nil

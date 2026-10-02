@@ -397,11 +397,23 @@ func (m model) footerText() string {
 
 	case commandModeControls:
 
-		return "CONTROLS • b previous • n next • p play/pause • m mute • v volume • esc cancel"
+		return fmt.Sprintf(
+			"CONTROLS • b previous • n next • %s • %s • %s • esc cancel",
+			m.pauseControlLabel(),
+			m.muteControlLabel(),
+			m.volumeControlLabel(),
+		)
 
 	case commandModeVolume:
 
-		return "VOLUME • ↑ louder • ↓ quieter • esc back"
+		if m.Player == nil {
+			return "VOLUME • ↑ louder • ↓ quieter • esc back"
+		}
+
+		return fmt.Sprintf(
+			"VOLUME • %.0f%% • ↑ louder • ↓ quieter • esc back",
+			m.Player.Volume(),
+		)
 
 	case commandModeTune:
 
@@ -420,6 +432,45 @@ func (m model) footerText() string {
 		return "c controls • t tune • e enhancements • i info • q sign off"
 
 	}
+
+}
+
+func (m model) pauseControlLabel() string {
+
+	if m.Player != nil &&
+		m.Player.Paused() {
+
+		return "p resume"
+	}
+
+	return "p pause"
+
+}
+
+func (m model) muteControlLabel() string {
+
+	if m.Player != nil &&
+		m.Player.Muted() {
+
+		return "m unmute"
+	}
+
+	return "m mute"
+
+}
+
+func (m model) volumeControlLabel() string {
+
+	if m.Player == nil {
+		return "v volume"
+	}
+
+	volume := m.Player.Volume()
+
+	return fmt.Sprintf(
+		"v volume %.0f%%",
+		volume,
+	)
 
 }
 
@@ -1091,7 +1142,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						return m, nil
 					}
 
-					m = m.leaveCommandMode()
+					// m = m.leaveCommandMode()
 
 					return m, nil
 
@@ -1106,7 +1157,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						return m, nil
 					}
 
-					m = m.leaveCommandMode()
+					// m = m.leaveCommandMode()
 
 					return m, nil
 

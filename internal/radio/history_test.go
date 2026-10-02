@@ -181,3 +181,220 @@ func TestHistoryIgnoresConsecutiveDuplicateStation(t *testing.T) {
 	}
 
 }
+
+func TestHistoryZeroValueHasNoCurrent(
+	t *testing.T,
+) {
+
+	var history History
+
+	if _, ok := history.Current(); ok {
+		t.Fatal("expected no current tune")
+	}
+
+	if history.CanBack() {
+		t.Fatal("expected no back history")
+	}
+
+	if history.CanForward() {
+		t.Fatal("expected no forward history")
+	}
+
+}
+
+func TestHistoryNavigatesBackwardAndForward(
+	t *testing.T,
+) {
+
+	var history History
+
+	now := time.Now()
+
+	history.Add("a", now)
+	history.Add("b", now.Add(time.Second))
+	history.Add("c", now.Add(2*time.Second))
+
+	current, ok := history.Current()
+	if !ok || current.StationID != "c" {
+		t.Fatalf(
+			"expected current station c, got %+v",
+			current,
+		)
+	}
+
+	back, ok := history.Back()
+	if !ok || back.StationID != "b" {
+		t.Fatalf(
+			"expected back station b, got %+v",
+			back,
+		)
+	}
+
+	back, ok = history.Back()
+	if !ok || back.StationID != "a" {
+		t.Fatalf(
+			"expected back station a, got %+v",
+			back,
+		)
+	}
+
+	if _, ok := history.Back(); ok {
+		t.Fatal(
+			"expected beginning of history",
+		)
+	}
+
+	forward, ok := history.Forward()
+	if !ok || forward.StationID != "b" {
+		t.Fatalf(
+			"expected forward station b, got %+v",
+			forward,
+		)
+	}
+
+	forward, ok = history.Forward()
+	if !ok || forward.StationID != "c" {
+		t.Fatalf(
+			"expected forward station c, got %+v",
+			forward,
+		)
+	}
+
+	if _, ok := history.Forward(); ok {
+		t.Fatal(
+			"expected end of history",
+		)
+	}
+
+}
+
+func TestHistoryAddTruncatesForwardHistory(
+	t *testing.T,
+) {
+
+	var history History
+
+	now := time.Now()
+
+	history.Add("a", now)
+	history.Add("b", now.Add(time.Second))
+	history.Add("c", now.Add(2*time.Second))
+	history.Add("d", now.Add(3*time.Second))
+
+	_, _ = history.Back()
+	_, _ = history.Back()
+
+	history.Add(
+		"e",
+		now.Add(4*time.Second),
+	)
+
+	if len(history.Tunes) != 3 {
+		t.Fatalf(
+			"expected 3 tunes, got %d",
+			len(history.Tunes),
+		)
+	}
+
+	expected := []string{
+		"a",
+		"b",
+		"e",
+	}
+
+	for i, stationID := range expected {
+
+		if history.Tunes[i].StationID !=
+			stationID {
+
+			t.Errorf(
+				"expected tune %d to be %q, got %q",
+				i,
+				stationID,
+				history.Tunes[i].StationID,
+			)
+
+		}
+
+	}
+
+	if history.CanForward() {
+		t.Fatal(
+			"expected forward history to be discarded",
+		)
+	}
+
+}
+
+func TestHistoryAddCurrentAfterBackDoesNotTruncateForward(
+	t *testing.T,
+) {
+
+	var history History
+
+	now := time.Now()
+
+	history.Add("a", now)
+	history.Add("b", now.Add(time.Second))
+	history.Add("c", now.Add(2*time.Second))
+
+	_, _ = history.Back()
+
+	history.Add(
+		"b",
+		now.Add(3*time.Second),
+	)
+
+	if len(history.Tunes) != 3 {
+		t.Fatalf(
+			"expected forward history preserved, got %d tunes",
+			len(history.Tunes),
+		)
+	}
+
+	if !history.CanForward() {
+		t.Fatal(
+			"expected forward history to remain",
+		)
+	}
+
+}
+
+func TestHistoryIdentifiesCurrentEntryAfterBack(
+	t *testing.T,
+) {
+
+	var history History
+
+	now := time.Now()
+
+	history.Add(
+		"z100",
+		now,
+	)
+
+	history.Add(
+		"skaworld",
+		now.Add(time.Second),
+	)
+
+	_, ok := history.Back()
+	if !ok {
+		t.Fatal(
+			"expected back navigation",
+		)
+	}
+
+	if !history.IsCurrent(0) {
+		t.Fatal(
+			"expected first entry to be current",
+		)
+	}
+
+	if history.IsCurrent(1) {
+		t.Fatal(
+			"expected forward entry not to be current",
+		)
+	}
+
+}

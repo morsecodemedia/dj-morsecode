@@ -192,22 +192,11 @@ func (m model) observePlayback(
 
 }
 
-func (m model) nextStation() model {
+func (m model) tuneStation(
+	station *radio.Station,
+) model {
 
-	if !m.ActiveIntent.Active() {
-		return m
-	}
-
-	station, ok := radio.Choose(
-		m.ActiveIntent.Criteria,
-		m.StationHistory,
-		radio.ChooseOptions{
-			RecentLimit: 3,
-			Chooser:     radio.RandomCandidate,
-			ExcludeIDs:  m.FailedStationIDs,
-		},
-	)
-	if !ok {
+	if station == nil {
 		return m
 	}
 
@@ -222,8 +211,13 @@ func (m model) nextStation() model {
 		observation.StationTuneRequested,
 		station.ID,
 	)
-	m.PendingStationID = station.ID
-	m.PendingSince = time.Now()
+
+	m.PendingStationID =
+		station.ID
+
+	m.PendingSince =
+		time.Now()
+
 	m.PlaybackItem =
 		metadata.PlaybackItem{}
 
@@ -231,6 +225,107 @@ func (m model) nextStation() model {
 
 	return m
 
+}
+
+func (m model) nextStation() model {
+
+	if m.ActiveIntent.Active() {
+
+		station, ok := radio.Choose(
+			m.ActiveIntent.Criteria,
+			m.StationHistory,
+			radio.ChooseOptions{
+				RecentLimit: 3,
+				Chooser:     radio.RandomCandidate,
+				ExcludeIDs:  m.FailedStationIDs,
+			},
+		)
+		if !ok {
+			return m
+		}
+
+		return m.tuneStation(
+			&station,
+		)
+	}
+
+	current, ok :=
+		m.CurrentStation()
+
+	if !ok {
+		return m
+	}
+
+	station, ok := radio.Next(
+		current.ID,
+	)
+	if !ok {
+		return m
+	}
+
+	return m.tuneStation(
+		station,
+	)
+
+}
+
+func (m model) previousStation() model {
+
+	if m.ActiveIntent.Active() {
+		return m
+	}
+
+	current, ok :=
+		m.CurrentStation()
+
+	if !ok {
+		return m
+	}
+
+	station, ok := radio.Previous(
+		current.ID,
+	)
+	if !ok {
+		return m
+	}
+
+	return m.tuneStation(
+		station,
+	)
+
+}
+
+func (m model) tuneHistory(
+	tune radio.Tune,
+) model {
+
+	station, ok := radio.Find(
+		tune.StationID,
+	)
+	if !ok {
+		return m
+	}
+
+	if err := m.Player.Load(
+		station.StreamURL,
+	); err != nil {
+		return m
+	}
+
+	m.observeStation(
+		observation.StationTuneRequested,
+		station.ID,
+	)
+
+	m.PendingStationID = station.ID
+	m.PendingSince = time.Now()
+
+	m.PlaybackItem =
+		metadata.PlaybackItem{}
+
+	m = m.clearTrackState()
+
+	return m
 }
 
 func (m model) shouldRotateStation(
@@ -935,9 +1030,53 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 				switch key {
 
-				case "n":
+				case "b":
+
+					if m.StationHistory.CanBack() {
+
+						tune, ok :=
+							m.StationHistory.Back()
+
+						if !ok {
+							return m, nil
+						}
+
+						m = m.tuneHistory(
+							tune,
+						)
+
+						m = m.leaveCommandMode()
+
+						return m, nil
+					}
+
+					m = m.previousStation()
 					m = m.leaveCommandMode()
+
+					return m, nil
+
+				case "n":
+
+					if m.StationHistory.CanForward() {
+
+						tune, ok :=
+							m.StationHistory.Forward()
+
+						if !ok {
+							return m, nil
+						}
+
+						m = m.tuneHistory(
+							tune,
+						)
+
+						m = m.leaveCommandMode()
+
+						return m, nil
+					}
+
 					m = m.nextStation()
+					m = m.leaveCommandMode()
 
 					return m, nil
 

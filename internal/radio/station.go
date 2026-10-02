@@ -565,6 +565,26 @@ var Stations = []Station{
 		},
 		Energy: 4,
 	},
+	// {
+	// 	ID:        "wipsports",
+	// 	Name:      "94WIP Sports Radio",
+	// 	StreamURL: "",
+	// 	Homepage:  "https://www.audacy.com/stations/94wip",
+	// 	Genre:     "Sports",
+	// 	Tags: []string{
+	// 		"sports",
+	// 		"talk radio",
+	// 	},
+	// 	Moods: []string{
+	// 		"varied",
+	// 	},
+	// 	Contexts: []string{
+	// 		"casual",
+	// 		"sports",
+	// 		"driving",
+	// 	},
+	// 	Energy: 3,
+	// },
 }
 
 func Find(id string) (*Station, bool) {
@@ -593,4 +613,54 @@ func FindByStreamURL(streamURL string) (*Station, bool) {
 
 	return nil, false
 
+}
+
+func Next(
+	stationID string,
+) (*Station, bool) {
+
+	if len(Stations) == 0 {
+		return nil, false
+	}
+
+	for i := range Stations {
+
+		if Stations[i].ID != stationID {
+			continue
+		}
+
+		next := (i + 1) %
+			len(Stations)
+
+		return &Stations[next], true
+	}
+
+	return nil, false
+}
+
+func Previous(
+	stationID string,
+) (*Station, bool) {
+
+	if len(Stations) == 0 {
+		return nil, false
+	}
+
+	for i := range Stations {
+
+		if Stations[i].ID != stationID {
+			continue
+		}
+
+		previous := i - 1
+
+		if previous < 0 {
+			previous =
+				len(Stations) - 1
+		}
+
+		return &Stations[previous], true
+	}
+
+	return nil, false
 }

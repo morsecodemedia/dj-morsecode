@@ -74,6 +74,77 @@ func (c *Client) command(property string) ([]byte, error) {
 
 }
 
+func (c *Client) setProperty(
+	property string,
+	value any,
+) error {
+
+	command := struct {
+		Command []any `json:"command"`
+	}{
+		Command: []any{
+			"set_property",
+			property,
+			value,
+		},
+	}
+
+	data, err := json.Marshal(
+		command,
+	)
+	if err != nil {
+		return err
+	}
+
+	data = append(
+		data,
+		'\n',
+	)
+
+	_, err = c.conn.Write(
+		data,
+	)
+	if err != nil {
+		return err
+	}
+
+	reader := bufio.NewReader(
+		c.conn,
+	)
+
+	response, err := reader.ReadBytes(
+		'\n',
+	)
+	if err != nil {
+		return err
+	}
+
+	var result struct {
+		Error string `json:"error"`
+	}
+
+	if err := json.Unmarshal(
+		response,
+		&result,
+	); err != nil {
+
+		return err
+	}
+
+	if result.Error != "success" {
+
+		return fmt.Errorf(
+			"mpv set property %q failed: %s",
+			property,
+			result.Error,
+		)
+
+	}
+
+	return nil
+
+}
+
 func (c *Client) loadFile(path string) error {
 
 	command := struct {
@@ -225,6 +296,63 @@ func (c *Client) CoreIdle() (bool, error) {
 
 	return c.boolProperty(
 		"core-idle",
+	)
+
+}
+
+func (c *Client) Paused() (bool, error) {
+
+	return c.boolProperty(
+		"pause",
+	)
+
+}
+
+func (c *Client) SetPaused(
+	paused bool,
+) error {
+
+	return c.setProperty(
+		"pause",
+		paused,
+	)
+
+}
+
+func (c *Client) Muted() (bool, error) {
+
+	return c.boolProperty(
+		"mute",
+	)
+
+}
+
+func (c *Client) SetMuted(
+	muted bool,
+) error {
+
+	return c.setProperty(
+		"mute",
+		muted,
+	)
+
+}
+
+func (c *Client) Volume() (float64, error) {
+
+	return c.floatProperty(
+		"volume",
+	)
+
+}
+
+func (c *Client) SetVolume(
+	volume float64,
+) error {
+
+	return c.setProperty(
+		"volume",
+		volume,
 	)
 
 }

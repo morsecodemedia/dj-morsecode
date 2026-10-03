@@ -162,3 +162,66 @@ func (p *Player) IsIdle() bool {
 	return idle
 
 }
+
+func (p *Player) Paused() bool {
+
+	paused, err := p.client.Paused()
+	if err != nil {
+		return false
+	}
+
+	return paused
+
+}
+
+func (p *Player) SetPaused(
+	paused bool,
+) error {
+
+	return p.client.SetPaused(
+		paused,
+	)
+
+}
+
+func (p *Player) Muted() bool {
+
+	muted, err := p.client.Muted()
+	if err != nil {
+		return false
+	}
+
+	return muted
+
+}
+
+func (p *Player) SetMuted(
+	muted bool,
+) error {
+
+	return p.client.SetMuted(
+		muted,
+	)
+
+}
+
+func (p *Player) Volume() float64 {
+
+	volume, err := p.client.Volume()
+	if err != nil {
+		return 0
+	}
+
+	return volume
+
+}
+
+func (p *Player) SetVolume(
+	volume float64,
+) error {
+
+	return p.client.SetVolume(
+		volume,
+	)
+
+}

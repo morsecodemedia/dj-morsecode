@@ -211,3 +211,124 @@ func validateValues(
 	}
 
 }
+
+func TestNextStation(
+	t *testing.T,
+) {
+
+	if len(Stations) < 2 {
+		t.Skip(
+			"requires at least two stations",
+		)
+	}
+
+	current := Stations[0]
+
+	next, ok := Next(
+		current.ID,
+	)
+	if !ok {
+		t.Fatal(
+			"expected next station",
+		)
+	}
+
+	if next.ID != Stations[1].ID {
+		t.Errorf(
+			"expected %q, got %q",
+			Stations[1].ID,
+			next.ID,
+		)
+	}
+
+}
+
+func TestNextStationWraps(
+	t *testing.T,
+) {
+
+	if len(Stations) < 2 {
+		t.Skip(
+			"requires at least two stations",
+		)
+	}
+
+	current :=
+		Stations[len(Stations)-1]
+
+	next, ok := Next(
+		current.ID,
+	)
+	if !ok {
+		t.Fatal(
+			"expected next station",
+		)
+	}
+
+	if next.ID != Stations[0].ID {
+		t.Errorf(
+			"expected %q, got %q",
+			Stations[0].ID,
+			next.ID,
+		)
+	}
+
+}
+
+func TestPreviousStationWraps(
+	t *testing.T,
+) {
+
+	if len(Stations) < 2 {
+		t.Skip(
+			"requires at least two stations",
+		)
+	}
+
+	current := Stations[0]
+
+	previous, ok := Previous(
+		current.ID,
+	)
+	if !ok {
+		t.Fatal(
+			"expected previous station",
+		)
+	}
+
+	expected :=
+		Stations[len(Stations)-1]
+
+	if previous.ID != expected.ID {
+		t.Errorf(
+			"expected %q, got %q",
+			expected.ID,
+			previous.ID,
+		)
+	}
+
+}
+
+func TestCatalogNavigationRejectsUnknownStation(
+	t *testing.T,
+) {
+
+	if _, ok := Next(
+		"does-not-exist",
+	); ok {
+
+		t.Fatal(
+			"expected Next to reject unknown station",
+		)
+	}
+
+	if _, ok := Previous(
+		"does-not-exist",
+	); ok {
+
+		t.Fatal(
+			"expected Previous to reject unknown station",
+		)
+	}
+
+}

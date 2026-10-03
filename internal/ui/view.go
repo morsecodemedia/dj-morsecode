@@ -295,7 +295,7 @@ func RenderStationHistory(
 
 			prefix := "  "
 
-			if i == len(history.Tunes)-1 {
+			if history.IsCurrent(i) {
 				prefix = "▶ "
 			}
 
@@ -623,6 +623,7 @@ func RenderStationPicker(
 
 func RenderIdle(
 	width int,
+	footer string,
 ) string {
 
 	if width == 0 {
@@ -700,7 +701,7 @@ func RenderIdle(
 
 	s.WriteString(Center(
 		Footer.Render(
-			"s stations • v vibes • m moods • g genres • h history • q sign off",
+			footer,
 		),
 		width,
 	))
@@ -718,9 +719,11 @@ func Render(
 	elapsed time.Duration,
 	nowPlaying string,
 	lyricsStatus string,
+	lyricsVisible bool,
 	stationName string,
 	intentType string,
 	intentName string,
+	footer string,
 ) string {
 
 	if width == 0 {
@@ -856,47 +859,55 @@ func Render(
 	)
 	s.WriteString("\n\n")
 
-	s.WriteString(
-		Album.Render("LYRICS • " + lyricsStatus),
-	)
-	s.WriteString("\n\n")
-
-	s.WriteString(Divider(width))
-	s.WriteString("\n\n")
-
-	if strings.TrimSpace(
-		song.Lyrics,
-	) == "" {
+	if lyricsVisible {
 
 		s.WriteString(
-			Lyric.Render(
-				"No lyrics available.",
+			Album.Render(
+				"LYRICS • " + lyricsStatus,
 			),
 		)
+		s.WriteString("\n\n")
 
-	} else {
+		s.WriteString(Divider(width))
+		s.WriteString("\n\n")
 
-		lines := strings.Split(
+		if strings.TrimSpace(
 			song.Lyrics,
-			"\n",
-		)
+		) == "" {
 
-		for _, line := range lines {
+			s.WriteString(
+				Lyric.Render(
+					"No lyrics available.",
+				),
+			)
 
-			if strings.TrimSpace(line) == "" {
+		} else {
+
+			lines := strings.Split(
+				song.Lyrics,
+				"\n",
+			)
+
+			for _, line := range lines {
+
+				if strings.TrimSpace(line) == "" {
+					s.WriteString("\n")
+					continue
+				}
+
+				s.WriteString(
+					Lyric.Render(line),
+				)
 
 				s.WriteString("\n")
-				continue
 
 			}
 
-			s.WriteString(
-				Lyric.Render(line),
-			)
-
-			s.WriteString("\n")
-
 		}
+
+		s.WriteString("\n")
+		s.WriteString(Divider(width))
+		s.WriteString("\n\n")
 
 	}
 
@@ -905,7 +916,9 @@ func Render(
 	s.WriteString("\n\n")
 
 	s.WriteString(Center(
-		Footer.Render("s stations • v vibes • m moods • g genres • n next • h history • q sign off"),
+		Footer.Render(
+			footer,
+		),
 		width,
 	))
 

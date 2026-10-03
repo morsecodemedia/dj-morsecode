@@ -8,13 +8,11 @@ type Tune struct {
 }
 
 type History struct {
-	Tunes []Tune
+	Tunes  []Tune
+	cursor int
 }
 
-func (h *History) Add(
-	stationID string,
-	tunedAt time.Time,
-) {
+func (h *History) Add(stationID string, tunedAt time.Time) {
 
 	if stationID == "" {
 		return
@@ -22,8 +20,19 @@ func (h *History) Add(
 
 	current, ok := h.Current()
 
-	if ok && current.StationID == stationID {
+	if ok &&
+		current.StationID == stationID {
+
 		return
+	}
+
+	if h.cursor < len(h.Tunes) {
+
+		h.Tunes = append(
+			[]Tune(nil),
+			h.Tunes[:h.cursor]...,
+		)
+
 	}
 
 	h.Tunes = append(
@@ -34,25 +43,31 @@ func (h *History) Add(
 		},
 	)
 
+	h.cursor = len(h.Tunes)
+
 }
 
 func (h History) Current() (Tune, bool) {
 
-	if len(h.Tunes) == 0 {
+	if h.cursor <= 0 ||
+		h.cursor > len(h.Tunes) {
+
 		return Tune{}, false
 	}
 
-	return h.Tunes[len(h.Tunes)-1], true
+	return h.Tunes[h.cursor-1], true
 
 }
 
 func (h History) Previous() (Tune, bool) {
 
-	if len(h.Tunes) < 2 {
+	if h.cursor <= 1 ||
+		h.cursor > len(h.Tunes) {
+
 		return Tune{}, false
 	}
 
-	return h.Tunes[len(h.Tunes)-2], true
+	return h.Tunes[h.cursor-2], true
 
 }
 
@@ -80,5 +95,52 @@ func (h History) ContainsRecent(
 	}
 
 	return false
+
+}
+
+func (h *History) CanBack() bool {
+
+	return h.cursor > 1
+
+}
+
+func (h *History) CanForward() bool {
+
+	return h.cursor > 0 &&
+		h.cursor < len(h.Tunes)
+
+}
+
+func (h *History) Back() (Tune, bool) {
+
+	if !h.CanBack() {
+		return Tune{}, false
+	}
+
+	h.cursor--
+
+	return h.Current()
+
+}
+
+func (h *History) Forward() (Tune, bool) {
+
+	if !h.CanForward() {
+		return Tune{}, false
+	}
+
+	h.cursor++
+
+	return h.Current()
+
+}
+
+func (h History) IsCurrent(
+	index int,
+) bool {
+
+	return h.cursor > 0 &&
+		h.cursor <= len(h.Tunes) &&
+		index == h.cursor-1
 
 }

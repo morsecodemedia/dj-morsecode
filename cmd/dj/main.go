@@ -56,6 +56,17 @@ func (s lyricsState) String() string {
 
 }
 
+type commandMode int
+
+const (
+	commandModeNone commandMode = iota
+	commandModeControls
+	commandModeTune
+	commandModeEnhancements
+	commandModeInfo
+	commandModeVolume
+)
+
 type model struct {
 	Width                  int
 	Height                 int
@@ -68,12 +79,14 @@ type model struct {
 	PlaybackItem           metadata.PlaybackItem
 	LyricsState            lyricsState
 	LyricsLookupDuration   time.Duration
+	LyricsVisible          bool
 	EnrichmentService      *enrichment.Service
 	EnrichmentMatch        metadata.EnrichmentMatch
 	TrackContext           metadata.TrackContext
 	ContextService         *trackcontext.Service
 	ObservationService     *observation.Service
 	ObservationHistory     *observation.MemorySink
+	CommandMode            commandMode
 	StationPickerOpen      bool
 	StationHistoryOpen     bool
 	ObservationHistoryOpen bool
@@ -179,22 +192,11 @@ func (m model) observePlayback(
 
 }
 
-func (m model) nextStation() model {
+func (m model) tuneStation(
+	station *radio.Station,
+) model {
 
-	if !m.ActiveIntent.Active() {
-		return m
-	}
-
-	station, ok := radio.Choose(
-		m.ActiveIntent.Criteria,
-		m.StationHistory,
-		radio.ChooseOptions{
-			RecentLimit: 3,
-			Chooser:     radio.RandomCandidate,
-			ExcludeIDs:  m.FailedStationIDs,
-		},
-	)
-	if !ok {
+	if station == nil {
 		return m
 	}
 
@@ -209,8 +211,13 @@ func (m model) nextStation() model {
 		observation.StationTuneRequested,
 		station.ID,
 	)
-	m.PendingStationID = station.ID
-	m.PendingSince = time.Now()
+
+	m.PendingStationID =
+		station.ID
+
+	m.PendingSince =
+		time.Now()
+
 	m.PlaybackItem =
 		metadata.PlaybackItem{}
 
@@ -218,6 +225,107 @@ func (m model) nextStation() model {
 
 	return m
 
+}
+
+func (m model) nextStation() model {
+
+	if m.ActiveIntent.Active() {
+
+		station, ok := radio.Choose(
+			m.ActiveIntent.Criteria,
+			m.StationHistory,
+			radio.ChooseOptions{
+				RecentLimit: 3,
+				Chooser:     radio.RandomCandidate,
+				ExcludeIDs:  m.FailedStationIDs,
+			},
+		)
+		if !ok {
+			return m
+		}
+
+		return m.tuneStation(
+			&station,
+		)
+	}
+
+	current, ok :=
+		m.CurrentStation()
+
+	if !ok {
+		return m
+	}
+
+	station, ok := radio.Next(
+		current.ID,
+	)
+	if !ok {
+		return m
+	}
+
+	return m.tuneStation(
+		station,
+	)
+
+}
+
+func (m model) previousStation() model {
+
+	if m.ActiveIntent.Active() {
+		return m
+	}
+
+	current, ok :=
+		m.CurrentStation()
+
+	if !ok {
+		return m
+	}
+
+	station, ok := radio.Previous(
+		current.ID,
+	)
+	if !ok {
+		return m
+	}
+
+	return m.tuneStation(
+		station,
+	)
+
+}
+
+func (m model) tuneHistory(
+	tune radio.Tune,
+) model {
+
+	station, ok := radio.Find(
+		tune.StationID,
+	)
+	if !ok {
+		return m
+	}
+
+	if err := m.Player.Load(
+		station.StreamURL,
+	); err != nil {
+		return m
+	}
+
+	m.observeStation(
+		observation.StationTuneRequested,
+		station.ID,
+	)
+
+	m.PendingStationID = station.ID
+	m.PendingSince = time.Now()
+
+	m.PlaybackItem =
+		metadata.PlaybackItem{}
+
+	m = m.clearTrackState()
+
+	return m
 }
 
 func (m model) shouldRotateStation(
@@ -264,6 +372,105 @@ func (m model) playbackPosition() time.Duration {
 	}
 
 	return elapsed
+
+}
+
+func (m model) enterCommandMode(
+	mode commandMode,
+) model {
+
+	m.CommandMode = mode
+
+	return m
+}
+
+func (m model) leaveCommandMode() model {
+
+	m.CommandMode = commandModeNone
+
+	return m
+}
+
+func (m model) footerText() string {
+
+	switch m.CommandMode {
+
+	case commandModeControls:
+
+		return fmt.Sprintf(
+			"CONTROLS • b previous • n next • %s • %s • %s • esc cancel",
+			m.pauseControlLabel(),
+			m.muteControlLabel(),
+			m.volumeControlLabel(),
+		)
+
+	case commandModeVolume:
+
+		if m.Player == nil {
+			return "VOLUME • ↑ louder • ↓ quieter • esc back"
+		}
+
+		return fmt.Sprintf(
+			"VOLUME • %.0f%% • ↑ louder • ↓ quieter • esc back",
+			m.Player.Volume(),
+		)
+
+	case commandModeTune:
+
+		return "TUNE • s stations • g genres • m moods • v vibes • esc cancel"
+
+	case commandModeEnhancements:
+
+		return "ENHANCEMENTS • l lyrics • t trivia • esc cancel"
+
+	case commandModeInfo:
+
+		return "INFO • o observations • h history • esc cancel"
+
+	default:
+
+		return "c controls • t tune • e enhancements • i info • q sign off"
+
+	}
+
+}
+
+func (m model) pauseControlLabel() string {
+
+	if m.Player != nil &&
+		m.Player.Paused() {
+
+		return "p resume"
+	}
+
+	return "p pause"
+
+}
+
+func (m model) muteControlLabel() string {
+
+	if m.Player != nil &&
+		m.Player.Muted() {
+
+		return "m unmute"
+	}
+
+	return "m mute"
+
+}
+
+func (m model) volumeControlLabel() string {
+
+	if m.Player == nil {
+		return "v volume"
+	}
+
+	volume := m.Player.Volume()
+
+	return fmt.Sprintf(
+		"v volume %.0f%%",
+		volume,
+	)
 
 }
 
@@ -779,45 +986,261 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		}
 
+		if m.CommandMode !=
+			commandModeNone {
+
+			switch key {
+
+			case "esc":
+
+				if m.CommandMode ==
+					commandModeVolume {
+
+					m = m.enterCommandMode(
+						commandModeControls,
+					)
+
+					return m, nil
+				}
+
+				m = m.leaveCommandMode()
+
+				return m, nil
+
+			}
+
+			switch m.CommandMode {
+
+			case commandModeTune:
+
+				switch key {
+
+				case "s":
+					m = m.leaveCommandMode()
+					m.StationPickerOpen = true
+					m.StationIndex = 0
+
+					return m, nil
+
+				case "g":
+					m = m.leaveCommandMode()
+					m.GenrePickerOpen = true
+					m.GenreIndex = 0
+
+					return m, nil
+
+				case "m":
+					m = m.leaveCommandMode()
+					m.MoodPickerOpen = true
+					m.MoodIndex = 0
+
+					return m, nil
+
+				case "v":
+					m = m.leaveCommandMode()
+					m.VibePickerOpen = true
+					m.VibeIndex = 0
+
+					return m, nil
+
+				}
+
+			case commandModeInfo:
+
+				switch key {
+
+				case "o":
+					m = m.leaveCommandMode()
+					m.ObservationHistoryOpen = true
+
+					return m, nil
+
+				case "h":
+					m = m.leaveCommandMode()
+					m.StationHistoryOpen = true
+
+					return m, nil
+
+				}
+
+			case commandModeEnhancements:
+
+				switch key {
+
+				case "l":
+					m.LyricsVisible =
+						!m.LyricsVisible
+
+					m = m.leaveCommandMode()
+
+					return m, nil
+
+				}
+
+			case commandModeControls:
+
+				switch key {
+
+				case "b":
+
+					if m.StationHistory.CanBack() {
+
+						tune, ok :=
+							m.StationHistory.Back()
+
+						if !ok {
+							return m, nil
+						}
+
+						m = m.tuneHistory(
+							tune,
+						)
+
+						m = m.leaveCommandMode()
+
+						return m, nil
+					}
+
+					m = m.previousStation()
+					m = m.leaveCommandMode()
+
+					return m, nil
+
+				case "n":
+
+					if m.StationHistory.CanForward() {
+
+						tune, ok :=
+							m.StationHistory.Forward()
+
+						if !ok {
+							return m, nil
+						}
+
+						m = m.tuneHistory(
+							tune,
+						)
+
+						m = m.leaveCommandMode()
+
+						return m, nil
+					}
+
+					m = m.nextStation()
+					m = m.leaveCommandMode()
+
+					return m, nil
+
+				case "p":
+
+					paused := m.Player.Paused()
+
+					if err := m.Player.SetPaused(
+						!paused,
+					); err != nil {
+
+						return m, nil
+					}
+
+					// m = m.leaveCommandMode()
+
+					return m, nil
+
+				case "m":
+
+					muted := m.Player.Muted()
+
+					if err := m.Player.SetMuted(
+						!muted,
+					); err != nil {
+
+						return m, nil
+					}
+
+					// m = m.leaveCommandMode()
+
+					return m, nil
+
+				case "v":
+
+					m = m.enterCommandMode(
+						commandModeVolume,
+					)
+
+					return m, nil
+
+				}
+			case commandModeVolume:
+
+				switch key {
+
+				case "up":
+
+					volume := m.Player.Volume() + 5
+
+					if volume > 100 {
+						volume = 100
+					}
+
+					if err := m.Player.SetVolume(
+						volume,
+					); err != nil {
+
+						return m, nil
+					}
+
+					return m, nil
+
+				case "down":
+
+					volume := m.Player.Volume() - 5
+
+					if volume < 0 {
+						volume = 0
+					}
+
+					if err := m.Player.SetVolume(
+						volume,
+					); err != nil {
+
+						return m, nil
+					}
+
+					return m, nil
+
+				}
+			}
+
+			return m, nil
+		}
+
 		switch key {
 
 		case "ctrl+c", "q":
 			return m, tea.Quit
 
-		case "s":
-			m.StationPickerOpen = true
-			m.StationIndex = 0
-
+		case "c":
+			m = m.enterCommandMode(
+				commandModeControls,
+			)
 			return m, nil
 
-		case "h":
-			m.StationHistoryOpen = true
+		case "t":
+			m = m.enterCommandMode(
+				commandModeTune,
+			)
 			return m, nil
 
-		case "o":
-			m.ObservationHistoryOpen = true
+		case "e":
+			m = m.enterCommandMode(
+				commandModeEnhancements,
+			)
 			return m, nil
 
-		case "v":
-			m.VibePickerOpen = true
-			m.VibeIndex = 0
-
-			return m, nil
-
-		case "m":
-			m.MoodPickerOpen = true
-			m.MoodIndex = 0
-
-			return m, nil
-
-		case "g":
-			m.GenrePickerOpen = true
-			m.GenreIndex = 0
-
-			return m, nil
-
-		case "n":
-			m = m.nextStation()
+		case "i":
+			m = m.enterCommandMode(
+				commandModeInfo,
+			)
 			return m, nil
 
 		}
@@ -1329,6 +1752,7 @@ func (m model) View() string {
 
 		return ui.RenderIdle(
 			m.Width,
+			m.footerText(),
 		)
 
 	}
@@ -1354,9 +1778,11 @@ func (m model) View() string {
 		m.playbackPosition(),
 		m.NowPlaying,
 		m.LyricsState.String(),
+		m.LyricsVisible,
 		stationName,
 		intentType,
 		intentName,
+		m.footerText(),
 	)
 
 	return view
@@ -1491,6 +1917,7 @@ func main() {
 		ContextService:     contextService,
 		ObservationService: observationService,
 		ObservationHistory: observationSink,
+		LyricsVisible:      true,
 	})
 
 	if _, err := p.Run(); err != nil {

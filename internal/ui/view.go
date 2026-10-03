@@ -295,7 +295,7 @@ func RenderStationHistory(
 
 			prefix := "  "
 
-			if i == len(history.Tunes)-1 {
+			if history.IsCurrent(i) {
 				prefix = "▶ "
 			}
 

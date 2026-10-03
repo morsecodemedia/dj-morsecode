@@ -153,3 +153,21 @@ Those modes should earn their way into the product rather than complicating the 
 ## Joy
 
 Every feature should still make someone smile.
+
+## MISC TODO
+
+TODO: Separate station navigation from listening history.
+
+Current radio.History now serves browser-style b/n navigation with a cursor,
+so navigating backward/forward does not create duplicate tune entries.
+
+The Station History UI therefore currently reflects navigation history rather
+than chronological listening history.
+
+Future cleanup:
+- Preserve navigation history + cursor for b/n controls.
+- Derive/display chronological station listening history separately, ideally
+  from tune-confirmed observations.
+- Station History should show every successful tune chronologically, including
+  revisits (e.g. Z100 → SKA World → Z100).
+- Active marker should identify the currently tuned station/event.

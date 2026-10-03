@@ -8,7 +8,6 @@ import (
 	"github.com/morsecodemedia/dj-morsecode/internal/library"
 	"github.com/morsecodemedia/dj-morsecode/internal/metadata"
 	"github.com/morsecodemedia/dj-morsecode/internal/music"
-	"github.com/morsecodemedia/dj-morsecode/internal/observation"
 	"github.com/morsecodemedia/dj-morsecode/internal/player"
 	"github.com/morsecodemedia/dj-morsecode/internal/radio"
 )
@@ -38,43 +37,13 @@ func (m model) updateTick(
 	path := snapshot.Path
 	isNetwork := snapshot.IsNetwork
 
-	station, stationFound := radio.FindByStreamURL(
-		path,
-	)
+	var station *radio.Station
+	var stationFound bool
 
-	stationChanged := false
-
-	if stationFound {
-
-		stationChanged =
-			m.CurrentStationID != "" &&
-				m.CurrentStationID != station.ID
-
-		if stationChanged {
-
-			m.PlaybackItem =
-				metadata.PlaybackItem{}
-
-			m = m.clearTrackState()
-
-		}
-
-		m.CurrentStationID = station.ID
-
-	} else if m.PendingStationID == "" {
-
-		if m.CurrentStationID != "" {
-
-			m.PlaybackItem =
-				metadata.PlaybackItem{}
-
-			m = m.clearTrackState()
-
-		}
-
-		m.CurrentStationID = ""
-
-	}
+	m, station, stationFound =
+		m.reconcileStationIdentity(
+			path,
+		)
 
 	track := metadata.Resolve(
 		rawTitle,
@@ -145,66 +114,18 @@ func (m model) updateTick(
 
 	}
 
-	if stationFound {
+	var stop bool
 
-		idle := snapshot.IsIdle
-
-		if !idle {
-
-			m.StationHistory.Add(
-				station.ID,
-				time.Now(),
-			)
-
-		}
-
-		if station.ID == m.PendingStationID &&
-			!idle {
-
-			m.observeStation(
-				observation.StationTuneConfirmed,
-				station.ID,
-			)
-
-			m.PendingStationID = ""
-			m.PendingSince = time.Time{}
-		}
-
-	}
-
-	if m.PendingStationID != "" &&
-		!m.PendingSince.IsZero() &&
-		time.Since(m.PendingSince) >= stationTuneGracePeriod &&
-		snapshot.IsIdle {
-
-		failedStationID := m.PendingStationID
-
-		m.observeStation(
-			observation.StationTuneFailed,
-			failedStationID,
+	m, stop =
+		m.reconcileStationLifecycle(
+			station,
+			stationFound,
+			snapshot.IsIdle,
+			time.Now(),
 		)
 
-		m.PendingStationID = ""
-		m.PendingSince = time.Time{}
-
-		m = m.failStation(
-			failedStationID,
-		)
-
-		m = m.nextStation()
-
+	if stop {
 		return m, tick()
-
-	}
-
-	if m.shouldRotateStation(
-		time.Now(),
-	) {
-
-		m = m.nextStation()
-
-		return m, tick()
-
 	}
 
 	if !isNetwork {

@@ -1054,10 +1054,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case tea.WindowSizeMsg:
 
-		m.Width = msg.Width
-		m.Height = msg.Height
-
-		return m, nil
+		return m.updateWindowSize(
+			msg,
+		)
 
 	case tickMsg:
 
@@ -1368,114 +1367,21 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case lrclibSongMsg:
 
-		if msg.TrackID != m.LastTrack {
-			return m, nil
-		}
-
-		if msg.Duration !=
-			m.LyricsLookupDuration {
-
-			return m, nil
-		}
-
-		if msg.Err != nil {
-			m.LyricsState = lyricsUnavailable
-			return m, nil
-		}
-
-		_, err := library.Store(
-			m.Song.Artist,
-			m.Song.Title,
-			msg.Content,
+		return m.updateLyrics(
+			msg,
 		)
-		if err != nil {
-			m.LyricsState = lyricsUnavailable
-			return m, nil
-		}
-
-		m.Song.Lyrics = msg.Song.Lyrics
-		m.Song.Timeline = msg.Song.Timeline
-		m.LyricsState = lyricsRemote
-		m.CurrentCue = player.CurrentCue(
-			m.Song.Timeline,
-			m.playbackPosition(),
-		)
-
-		return m, nil
 
 	case enrichmentMsg:
 
-		if msg.Err != nil {
-			return m, nil
-		}
-
-		if msg.TrackID != m.LastTrack {
-			return m, nil
-		}
-
-		if msg.Status != metadata.MatchAccepted {
-			return m, nil
-		}
-
-		m.EnrichmentMatch = msg.Match
-
-		contextCmd := loadTrackContexts(
-			m.ContextService,
-			msg.TrackID,
-			msg.Match.Track,
-		)
-
-		if msg.Match.Duration <= 0 ||
-			msg.Match.Duration == m.LyricsLookupDuration {
-
-			return m, contextCmd
-		}
-
-		if m.LyricsState == lyricsLocal ||
-			m.LyricsState == lyricsRemote {
-
-			return m, contextCmd
-		}
-
-		m.LyricsLookupDuration =
-			msg.Match.Duration
-
-		m.LyricsState =
-			lyricsSearching
-
-		lyricsCmd := loadLRCLIBSong(
-			msg.TrackID,
-			msg.Match.Track.Artist,
-			msg.Match.Track.Title,
-			msg.Match.Duration,
-		)
-
-		return m, tea.Batch(
-			contextCmd,
-			lyricsCmd,
+		return m.updateEnrichment(
+			msg,
 		)
 
 	case contextMsg:
 
-		if msg.TrackID != m.LastTrack {
-			return m, nil
-		}
-
-		if msg.Err != nil {
-			return m, nil
-		}
-
-		if !msg.OK {
-			return m, nil
-		}
-
-		m.TrackContext =
-			metadata.MergeTrackContext(
-				m.TrackContext,
-				msg.Context,
-			)
-
-		return m, nil
+		return m.updateContext(
+			msg,
+		)
 
 	}
 

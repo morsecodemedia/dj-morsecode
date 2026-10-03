@@ -19,20 +19,24 @@ func (m model) updateTick(
 
 	_ = msg
 
+	snapshot := snapshotPlayback(
+		m.Player,
+	)
+
 	position := m.playbackPosition()
-	duration := m.Player.Duration()
+	duration := snapshot.Duration
 
 	if duration > 0 {
 		m.Song.Duration = duration
 	}
 
-	rawTitle := m.Player.Title()
-	artist := m.Player.Artist()
-	title := m.Player.TrackTitle()
-	album := m.Player.Album()
-	trackID := m.Player.TrackID()
-	path := m.Player.Path()
-	isNetwork := m.Player.IsNetwork()
+	rawTitle := snapshot.RawTitle
+	artist := snapshot.Artist
+	title := snapshot.Title
+	album := snapshot.Album
+	trackID := snapshot.TrackID
+	path := snapshot.Path
+	isNetwork := snapshot.IsNetwork
 
 	station, stationFound := radio.FindByStreamURL(
 		path,
@@ -81,7 +85,7 @@ func (m model) updateTick(
 	if isNetwork {
 
 		observedItem := metadata.Normalize(
-			m.Player.Metadata(),
+			snapshot.Metadata,
 		)
 
 		if observedItem.Observed() {
@@ -143,7 +147,7 @@ func (m model) updateTick(
 
 	if stationFound {
 
-		idle := m.Player.IsIdle()
+		idle := snapshot.IsIdle
 
 		if !idle {
 
@@ -171,7 +175,7 @@ func (m model) updateTick(
 	if m.PendingStationID != "" &&
 		!m.PendingSince.IsZero() &&
 		time.Since(m.PendingSince) >= stationTuneGracePeriod &&
-		m.Player.IsIdle() {
+		snapshot.IsIdle {
 
 		failedStationID := m.PendingStationID
 

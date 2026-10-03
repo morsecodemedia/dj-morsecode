@@ -5,9 +5,6 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
-	"github.com/morsecodemedia/dj-morsecode/internal/library"
-	"github.com/morsecodemedia/dj-morsecode/internal/metadata"
-	"github.com/morsecodemedia/dj-morsecode/internal/music"
 	"github.com/morsecodemedia/dj-morsecode/internal/player"
 	"github.com/morsecodemedia/dj-morsecode/internal/radio"
 )
@@ -69,9 +66,6 @@ func (m model) updateTick(
 	}
 
 	track := resolved.Track
-	album := resolved.Album
-	duration := resolved.Duration
-	trackID := resolved.TrackID
 
 	if snapshot.IsNetwork &&
 		resolved.Observed &&
@@ -97,81 +91,11 @@ func (m model) updateTick(
 
 		}
 
-		if trackID != m.LastTrack {
-
-			m.Song = music.Song{
-				Title:    track.Title,
-				Artist:   track.Artist,
-				Album:    album,
-				Duration: duration,
-			}
-
-			m.CurrentCue = 0
-			m.EnrichmentMatch =
-				metadata.EnrichmentMatch{}
-			m.TrackContext =
-				metadata.TrackContext{}
-
-			enrichmentDuration := time.Duration(0)
-
-			if snapshot.IsNetwork &&
-				m.PlaybackItem.Duration > 0 {
-
-				enrichmentDuration =
-					m.PlaybackItem.Duration
-
-			} else if !snapshot.IsNetwork {
-
-				enrichmentDuration = duration
-
-			}
-
-			enrichmentItem := metadata.PlaybackItem{
-				Type:     metadata.PlaybackTrack,
-				Artist:   track.Artist,
-				Title:    track.Title,
-				Duration: enrichmentDuration,
-			}
-
-			enrichmentCmd := enrichTrack(
-				m.EnrichmentService,
-				trackID,
-				enrichmentItem,
+		if resolved.TrackID != m.LastTrack {
+			return m.startTrack(
+				resolved,
+				snapshot.IsNetwork,
 			)
-
-			song, ok := library.Load(
-				track.Artist,
-				track.Title,
-			)
-
-			if ok {
-				m.Song.Lyrics = song.Lyrics
-				m.Song.Timeline = song.Timeline
-				m.LyricsState = lyricsLocal
-				m.LastTrack = trackID
-
-				return m, tea.Batch(
-					tick(),
-					enrichmentCmd,
-				)
-
-			}
-
-			m.LastTrack = trackID
-			m.LyricsState = lyricsSearching
-			m.LyricsLookupDuration = duration
-
-			return m, tea.Batch(
-				tick(),
-				loadLRCLIBSong(
-					trackID,
-					track.Artist,
-					track.Title,
-					duration,
-				),
-				enrichmentCmd,
-			)
-
 		}
 
 	}

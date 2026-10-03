@@ -4,6 +4,23 @@ DJ MorseCode optimizes for discovery.
 
 The roadmap is organized around product directions rather than promised release numbers. Features move into a release when they make the listening experience better without making the DJ demand more attention.
 
+## Current Foundation
+
+DJ MorseCode currently provides:
+
+- live internet-radio playback through mpv
+- direct station tuning
+- mood, genre, and vibe-based station discovery
+- browser-style station back/forward navigation
+- playback controls for pause, mute, and volume
+- tiered contextual keyboard controls
+- normalized provider-specific stream metadata
+- MusicBrainz identity and release enrichment
+- Last.fm contextual tags
+- playback and station observations
+- LRCLIB lyric discovery with local caching
+- plain and synchronized lyric content
+
 ## Session Intelligence
 
 ### Keep Cookin'
@@ -109,7 +126,12 @@ The terminal renderer should care about what is playing, not where it came from.
 
 Lyrics should remain provider-agnostic.
 
-Potential directions include:
+Reliable lyric acquisition and readable lyric content are the current priority.
+
+Synchronized lyric highlighting is an optional future enhancement rather than
+a requirement for displaying lyrics.
+
+Potential future enhancements include:
 
 * additional lyric providers
 * user-managed local LRC discovery
@@ -127,6 +149,50 @@ Potential station-catalog improvements include:
 * preferred codec/quality selection
 * endpoint failover
 * catalog health tooling
+
+## Catalog Intelligence
+
+DJ MorseCode should make adding and maintaining stations substantially easier
+than manually researching and classifying them.
+
+### Assisted Station Import
+
+Given a stream URL and optional homepage, inspect available source evidence and
+produce a structured station proposal.
+
+Potential evidence includes:
+
+- stream metadata and ICY headers
+- station name and description
+- declared genres
+- homepage content
+- current/sample track metadata
+- existing DJ MorseCode catalog taxonomy
+
+An LLM-backed classifier may use this evidence to propose:
+
+- station name
+- genre
+- tags
+- moods
+- contexts
+- energy
+- other catalog metadata
+
+Generated classifications must conform to DJ MorseCode's existing taxonomy
+rather than inventing arbitrary categories.
+
+Imports should be reviewable before becoming part of the active catalog.
+Generated values should retain enough provenance to understand why they were
+selected.
+
+Future ingestion sources may include:
+
+- individual stream URLs
+- station homepages
+- M3U playlists
+- external radio catalogs
+- user-maintained catalog files
 
 ## Interface
 
@@ -155,6 +221,35 @@ Those modes should earn their way into the product rather than complicating the 
 Every feature should still make someone smile.
 
 ## MISC TODO
+
+TODO: Application-layer refactor
+  → get cmd/dj under control without changing behavior
+
+TODO: Persistence/session foundation
+  → durable observations
+  → chronological listening history
+  → station health
+
+TODO: Catalog evolution
+  → stations become data rather than compiled Go
+  → assisted URL/homepage importer
+  → taxonomy-constrained LLM classification
+  → review/provenance workflow
+
+TODO: Session Intelligence
+  → Keep Cookin'
+  → Surprise Me
+  → Go Deeper
+  → Take Me Sideways
+  → Go Harder
+  → Cool It Down
+  → Encore
+  
+TODO: Experience/UI
+  → DJ Notes
+  → lyrics panel
+  → optional Follow Mode
+  → broader UI cleanup
 
 TODO: Separate station navigation from listening history.
 

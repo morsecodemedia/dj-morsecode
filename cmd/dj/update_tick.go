@@ -23,19 +23,11 @@ func (m model) updateTick(
 	)
 
 	position := m.playbackPosition()
-	duration := snapshot.Duration
-
-	if duration > 0 {
-		m.Song.Duration = duration
-	}
-
-	rawTitle := snapshot.RawTitle
-	artist := snapshot.Artist
-	title := snapshot.Title
-	album := snapshot.Album
-	trackID := snapshot.TrackID
 	path := snapshot.Path
-	isNetwork := snapshot.IsNetwork
+	if snapshot.Duration > 0 {
+		m.Song.Duration =
+			snapshot.Duration
+	}
 
 	var station *radio.Station
 	var stationFound bool
@@ -45,76 +37,24 @@ func (m model) updateTick(
 			path,
 		)
 
-	track := metadata.Resolve(
-		rawTitle,
-	)
+	var stop bool
+	var resolved playbackTrack
 
-	observedPlaybackItem := false
-
-	if isNetwork {
-
-		observedItem := metadata.Normalize(
-			snapshot.Metadata,
+	m, resolved =
+		m.resolvePlaybackTrack(
+			snapshot,
 		)
 
-		if observedItem.Observed() {
-
-			observedPlaybackItem = true
-			m.PlaybackItem = observedItem
-
-		}
-
-		if m.PlaybackItem.IsTrack() {
-
-			track.RawTitle =
-				m.PlaybackItem.RawTitle
-
-			track.Artist =
-				m.PlaybackItem.Artist
-
-			track.Title =
-				m.PlaybackItem.Title
-
-			track.Valid = true
-
-			album = m.PlaybackItem.Album
-
-			if m.PlaybackItem.Duration > 0 {
-				duration =
-					m.PlaybackItem.Duration
-			}
-
-			trackID = path +
-				"\x00" +
-				m.PlaybackItem.Artist +
-				"\x00" +
-				m.PlaybackItem.Title
-
-		} else {
-
-			track.Valid = false
-
-		}
-
-	} else {
-
-		m.PlaybackItem =
-			metadata.PlaybackItem{}
-
-	}
-
-	if isNetwork &&
-		observedPlaybackItem {
+	if snapshot.IsNetwork &&
+		resolved.Observed {
 
 		m.observePlayback(
 			m.PlaybackItem,
 			m.CurrentStationID,
-			trackID,
+			resolved.TrackID,
 		)
 
 	}
-
-	var stop bool
 
 	m, stop =
 		m.reconcileStationLifecycle(
@@ -128,18 +68,13 @@ func (m model) updateTick(
 		return m, tick()
 	}
 
-	if !isNetwork {
-		if artist != "" {
-			track.Artist = artist
-		}
+	track := resolved.Track
+	album := resolved.Album
+	duration := resolved.Duration
+	trackID := resolved.TrackID
 
-		if title != "" {
-			track.Title = title
-		}
-	}
-
-	if isNetwork &&
-		observedPlaybackItem &&
+	if snapshot.IsNetwork &&
+		resolved.Observed &&
 		!m.PlaybackItem.IsTrack() {
 
 		m = m.clearTrackState()
@@ -152,7 +87,7 @@ func (m model) updateTick(
 
 	if track.Valid {
 
-		if isNetwork {
+		if snapshot.IsNetwork {
 
 			m.NowPlaying = m.PlaybackItem.DisplayTitle()
 
@@ -179,13 +114,13 @@ func (m model) updateTick(
 
 			enrichmentDuration := time.Duration(0)
 
-			if isNetwork &&
+			if snapshot.IsNetwork &&
 				m.PlaybackItem.Duration > 0 {
 
 				enrichmentDuration =
 					m.PlaybackItem.Duration
 
-			} else if !isNetwork {
+			} else if !snapshot.IsNetwork {
 
 				enrichmentDuration = duration
 

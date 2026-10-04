@@ -585,6 +585,23 @@ var Stations = []Station{
 	// 	},
 	// 	Energy: 3,
 	// },
+	// {
+	// 	ID:        "wtku",
+	// 	Name:      "WTKU 98.3FM",
+	// 	StreamURL: "https://radio.garden/listen/wtku-98-3fm/LQgkSyTO",
+	// 	Homepage:  "",
+	// 	Genre:     "",
+	// 	Tags: []string{
+	// 		"",
+	// 	},
+	// 	Moods: []string{
+	// 		"",
+	// 	},
+	// 	Contexts: []string{
+	// 		"",
+	// 	},
+	// 	Energy: 3,
+	// },
 }
 
 func Find(id string) (*Station, bool) {

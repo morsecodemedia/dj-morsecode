@@ -7,6 +7,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	trackcontext "github.com/morsecodemedia/dj-morsecode/internal/context"
+	"github.com/morsecodemedia/dj-morsecode/internal/controls"
 	"github.com/morsecodemedia/dj-morsecode/internal/enrichment"
 	"github.com/morsecodemedia/dj-morsecode/internal/lastfm"
 	"github.com/morsecodemedia/dj-morsecode/internal/metadata"
@@ -52,17 +53,6 @@ func (s lyricsState) String() string {
 
 }
 
-type commandMode int
-
-const (
-	commandModeNone commandMode = iota
-	commandModeControls
-	commandModeTune
-	commandModeEnhancements
-	commandModeInfo
-	commandModeVolume
-)
-
 type model struct {
 	Width                  int
 	Height                 int
@@ -82,7 +72,7 @@ type model struct {
 	ContextService         *trackcontext.Service
 	ObservationService     *observation.Service
 	ObservationHistory     *observation.MemorySink
-	CommandMode            commandMode
+	CommandMode            controls.Mode
 	StationPickerOpen      bool
 	StationHistoryOpen     bool
 	ObservationHistoryOpen bool
@@ -372,7 +362,7 @@ func (m model) playbackPosition() time.Duration {
 }
 
 func (m model) enterCommandMode(
-	mode commandMode,
+	mode controls.Mode,
 ) model {
 
 	m.CommandMode = mode
@@ -382,7 +372,7 @@ func (m model) enterCommandMode(
 
 func (m model) leaveCommandMode() model {
 
-	m.CommandMode = commandModeNone
+	m.CommandMode = controls.ModeNone
 
 	return m
 }
@@ -391,7 +381,7 @@ func (m model) footerText() string {
 
 	switch m.CommandMode {
 
-	case commandModeControls:
+	case controls.ModeControls:
 
 		return fmt.Sprintf(
 			"CONTROLS • b previous • n next • %s • %s • %s • esc cancel",
@@ -400,7 +390,7 @@ func (m model) footerText() string {
 			m.volumeControlLabel(),
 		)
 
-	case commandModeVolume:
+	case controls.ModeVolume:
 
 		if m.Player == nil {
 			return "VOLUME • ↑ louder • ↓ quieter • esc back"
@@ -411,15 +401,15 @@ func (m model) footerText() string {
 			m.Player.Volume(),
 		)
 
-	case commandModeTune:
+	case controls.ModeTune:
 
 		return "TUNE • s stations • g genres • m moods • v vibes • esc cancel"
 
-	case commandModeEnhancements:
+	case controls.ModeEnhancements:
 
 		return "ENHANCEMENTS • l lyrics • t trivia • esc cancel"
 
-	case commandModeInfo:
+	case controls.ModeInfo:
 
 		return "INFO • o observations • h history • esc cancel"
 

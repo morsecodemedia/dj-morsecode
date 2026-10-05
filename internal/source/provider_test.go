@@ -17,16 +17,17 @@ func (s catalogStub) Items(
 }
 
 type discovererStub struct {
-	items []MediaItem
+	results []DiscoveryResult
 }
 
 func (s discovererStub) Discover(
 	ctx context.Context,
 	request DiscoveryRequest,
-) ([]MediaItem, error) {
+) ([]DiscoveryResult, error) {
 
-	return s.items, nil
+	return s.results, nil
 }
+
 func TestCatalogProviderContract(
 	t *testing.T,
 ) {
@@ -66,20 +67,23 @@ func TestDiscovererContract(
 ) {
 
 	var provider Discoverer = discovererStub{
-		items: []MediaItem{
+		results: []DiscoveryResult{
 			{
-				Kind: MediaTrack,
-				Ref: ItemRef{
-					Source: Source{
-						Kind: KindLastFM,
+				Item: MediaItem{
+					Kind: MediaTrack,
+					Ref: ItemRef{
+						Source: Source{
+							Kind: KindLastFM,
+						},
+						ID: "track-123",
 					},
-					ID: "track-123",
 				},
+				Score: 0.91,
 			},
 		},
 	}
 
-	items, err := provider.Discover(
+	results, err := provider.Discover(
 		context.Background(),
 		DiscoveryRequest{
 			Kind:  DiscoverySearch,
@@ -91,10 +95,10 @@ func TestDiscovererContract(
 		t.Fatal(err)
 	}
 
-	if len(items) != 1 {
+	if len(results) != 1 {
 		t.Fatalf(
 			"expected 1 item, got %d",
-			len(items),
+			len(results),
 		)
 	}
 

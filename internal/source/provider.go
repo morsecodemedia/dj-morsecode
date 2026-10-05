@@ -29,9 +29,15 @@ type DiscoveryRequest struct {
 	Limit int
 }
 
+type DiscoveryResult struct {
+	Item MediaItem
+
+	Score float64
+}
+
 type Discoverer interface {
 	Discover(
 		ctx context.Context,
 		request DiscoveryRequest,
-	) ([]MediaItem, error)
+	) ([]DiscoveryResult, error)
 }

@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/morsecodemedia/dj-morsecode/internal/radio"
+	"github.com/morsecodemedia/dj-morsecode/internal/source"
 )
 
 func StationProposal(
@@ -63,5 +64,29 @@ func StationProposals(
 	}
 
 	return proposals
+
+}
+
+func StationMediaItem(
+	entry Entry,
+) (source.MediaItem, bool) {
+
+	if !entry.Ref.Valid() {
+		return source.MediaItem{}, false
+	}
+
+	item := source.MediaItem{
+		Kind: source.MediaStation,
+		Ref:  entry.Ref,
+		Title: strings.TrimSpace(
+			entry.Ref.Name,
+		),
+	}
+
+	if !item.Valid() {
+		return source.MediaItem{}, false
+	}
+
+	return item, true
 
 }

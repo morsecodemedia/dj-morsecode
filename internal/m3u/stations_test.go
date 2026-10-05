@@ -260,3 +260,58 @@ func TestRealExtendedPlaylistProducesStationProposals(
 	}
 
 }
+
+func TestStationMediaItem(
+	t *testing.T,
+) {
+
+	entry := Entry{
+		Ref: source.ItemRef{
+			Source: source.Source{
+				Kind: source.KindM3U,
+				URI:  "stations.m3u",
+			},
+			URI:  "https://example.com/live",
+			Name: "Example FM",
+		},
+	}
+
+	item, ok :=
+		StationMediaItem(
+			entry,
+		)
+
+	if !ok {
+		t.Fatal(
+			"expected station media item",
+		)
+	}
+
+	if item.Kind !=
+		source.MediaStation {
+
+		t.Errorf(
+			"expected station kind, got %q",
+			item.Kind,
+		)
+
+	}
+
+	if item.Title != "Example FM" {
+		t.Errorf(
+			"expected station title, got %q",
+			item.Title,
+		)
+	}
+
+	if item.Ref.Source.Kind !=
+		source.KindM3U {
+
+		t.Errorf(
+			"expected M3U provenance, got %q",
+			item.Ref.Source.Kind,
+		)
+
+	}
+
+}

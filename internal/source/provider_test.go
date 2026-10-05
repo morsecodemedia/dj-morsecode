@@ -22,12 +22,11 @@ type discovererStub struct {
 
 func (s discovererStub) Discover(
 	ctx context.Context,
-	query string,
+	request DiscoveryRequest,
 ) ([]MediaItem, error) {
 
 	return s.items, nil
 }
-
 func TestCatalogProviderContract(
 	t *testing.T,
 ) {
@@ -82,8 +81,12 @@ func TestDiscovererContract(
 
 	items, err := provider.Discover(
 		context.Background(),
-		"Stone Temple Pilots",
+		DiscoveryRequest{
+			Kind:  DiscoverySearch,
+			Query: "Stone Temple Pilots",
+		},
 	)
+
 	if err != nil {
 		t.Fatal(err)
 	}

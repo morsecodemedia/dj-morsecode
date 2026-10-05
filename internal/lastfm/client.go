@@ -173,6 +173,23 @@ type trackInfoResponse struct {
 	} `json:"track"`
 }
 
+type similarTracksResponse struct {
+	SimilarTracks struct {
+		Tracks []struct {
+			Name  string  `json:"name"`
+			MBID  string  `json:"mbid"`
+			Match float64 `json:"match,string"`
+			URL   string  `json:"url"`
+
+			Artist struct {
+				Name string `json:"name"`
+				MBID string `json:"mbid"`
+				URL  string `json:"url"`
+			} `json:"artist"`
+		} `json:"track"`
+	} `json:"similartracks"`
+}
+
 func (c *Client) TrackInfo(
 	ctx context.Context,
 	artist string,
@@ -281,6 +298,139 @@ func (c *Client) TrackInfo(
 	}
 
 	return info, nil
+
+}
+
+func (c *Client) TrackSimilar(
+	ctx context.Context,
+	artist string,
+	track string,
+	limit int,
+) ([]SimilarTrack, error) {
+
+	endpoint, err := url.Parse(
+		c.baseURL,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	values := endpoint.Query()
+
+	values.Set(
+		"method",
+		"track.getSimilar",
+	)
+
+	values.Set(
+		"api_key",
+		c.apiKey,
+	)
+
+	values.Set(
+		"artist",
+		artist,
+	)
+
+	values.Set(
+		"track",
+		track,
+	)
+
+	values.Set(
+		"autocorrect",
+		"1",
+	)
+
+	if limit > 0 {
+
+		values.Set(
+			"limit",
+			fmt.Sprintf(
+				"%d",
+				limit,
+			),
+		)
+
+	}
+
+	values.Set(
+		"format",
+		"json",
+	)
+
+	endpoint.RawQuery =
+		values.Encode()
+
+	request, err :=
+		http.NewRequestWithContext(
+			ctx,
+			http.MethodGet,
+			endpoint.String(),
+			nil,
+		)
+	if err != nil {
+		return nil, err
+	}
+
+	response, err :=
+		c.httpClient.Do(
+			request,
+		)
+	if err != nil {
+		return nil, err
+	}
+	defer response.Body.Close()
+
+	if response.StatusCode !=
+		http.StatusOK {
+
+		return nil, fmt.Errorf(
+			"last.fm similar tracks failed: %s",
+			response.Status,
+		)
+
+	}
+
+	var result similarTracksResponse
+
+	if err := json.NewDecoder(
+		response.Body,
+	).Decode(&result); err != nil {
+
+		return nil, err
+	}
+
+	tracks := make(
+		[]SimilarTrack,
+		0,
+		len(result.SimilarTracks.Tracks),
+	)
+
+	for _, candidate := range result.SimilarTracks.Tracks {
+
+		if candidate.Name == "" ||
+			candidate.Artist.Name == "" {
+
+			continue
+		}
+
+		tracks = append(
+			tracks,
+			SimilarTrack{
+				Track: TrackInfo{
+					Artist: candidate.Artist.Name,
+					Title:  candidate.Name,
+					MBID:   candidate.MBID,
+					URL:    candidate.URL,
+				},
+				Match: candidate.Match,
+			},
+		)
+
+	}
+
+	return tracks, nil
 
 }
 

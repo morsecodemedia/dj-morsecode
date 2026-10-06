@@ -34,6 +34,9 @@ func (m model) updateTick(
 			path,
 		)
 
+	snapshot.IsRadio =
+		stationFound
+
 	var stop bool
 	var resolved playbackTrack
 
@@ -42,7 +45,7 @@ func (m model) updateTick(
 			snapshot,
 		)
 
-	if snapshot.IsNetwork &&
+	if snapshot.IsRadio &&
 		resolved.Observed {
 
 		m.observePlayback(
@@ -67,7 +70,7 @@ func (m model) updateTick(
 
 	track := resolved.Track
 
-	if snapshot.IsNetwork &&
+	if snapshot.IsRadio &&
 		resolved.Observed &&
 		!m.PlaybackItem.IsTrack() {
 
@@ -81,7 +84,7 @@ func (m model) updateTick(
 
 	if track.Valid {
 
-		if snapshot.IsNetwork {
+		if snapshot.IsRadio {
 
 			m.NowPlaying = m.PlaybackItem.DisplayTitle()
 
@@ -94,7 +97,7 @@ func (m model) updateTick(
 		if resolved.TrackID != m.LastTrack {
 			return m.startTrack(
 				resolved,
-				snapshot.IsNetwork,
+				snapshot.IsRadio,
 			)
 		}
 

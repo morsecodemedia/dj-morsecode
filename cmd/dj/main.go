@@ -339,7 +339,14 @@ func (m model) playbackPosition() time.Duration {
 		return 0
 	}
 
-	if !m.Player.IsNetwork() {
+	path := m.Player.Path()
+
+	_, isRadio :=
+		radio.FindByStreamURL(
+			path,
+		)
+
+	if !isRadio {
 		return m.Player.Position()
 	}
 

@@ -17,6 +17,7 @@ type playbackSnapshot struct {
 	Path     string
 
 	IsNetwork bool
+	IsRadio   bool
 	IsIdle    bool
 
 	Metadata map[string]string

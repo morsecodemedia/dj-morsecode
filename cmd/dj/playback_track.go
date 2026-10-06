@@ -29,7 +29,7 @@ func (m model) resolvePlaybackTrack(
 		TrackID:  snapshot.TrackID,
 	}
 
-	if snapshot.IsNetwork {
+	if snapshot.IsRadio {
 
 		observedItem := metadata.Normalize(
 			snapshot.Metadata,

@@ -7,15 +7,20 @@ import (
 )
 
 type Catalog struct {
-	urls []string
+	entries []CatalogEntry
+}
+
+type CatalogEntry struct {
+	Name string
+	URL  string
 }
 
 func NewCatalog(
-	urls []string,
+	entries []CatalogEntry,
 ) *Catalog {
 
 	return &Catalog{
-		urls: urls,
+		entries: entries,
 	}
 
 }
@@ -31,12 +36,14 @@ func (c *Catalog) Items(
 	items := make(
 		[]source.MediaItem,
 		0,
-		len(c.urls),
+		len(c.entries),
 	)
 
-	for _, raw := range c.urls {
+	for _, entry := range c.entries {
 
-		ref, ok := ParseURL(raw)
+		ref, ok := ParseURL(
+			entry.URL,
+		)
 		if !ok {
 			continue
 		}
@@ -45,6 +52,12 @@ func (c *Catalog) Items(
 		if !ok {
 			continue
 		}
+
+		item.Ref.Name =
+			entry.Name
+
+		item.Title =
+			entry.Name
 
 		items = append(
 			items,

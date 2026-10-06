@@ -12,11 +12,23 @@ func TestCatalogItems(
 ) {
 
 	catalog := NewCatalog(
-		[]string{
-			"https://youtu.be/video-one",
-			"https://www.youtube.com/playlist?list=PL123",
-			"https://example.com/not-youtube",
-			"https://www.youtube.com/shorts/video-two",
+		[]CatalogEntry{
+			{
+				Name: "Video One",
+				URL:  "https://youtu.be/video-one",
+			},
+			{
+				Name: "Playlist",
+				URL:  "https://www.youtube.com/playlist?list=PL123",
+			},
+			{
+				Name: "Not YouTube",
+				URL:  "https://example.com/not-youtube",
+			},
+			{
+				Name: "Video Two",
+				URL:  "https://www.youtube.com/shorts/video-two",
+			},
 		},
 	)
 
@@ -53,6 +65,15 @@ func TestCatalogItems(
 			"expected third item to be video, got %q",
 			items[2].Kind,
 		)
+	}
+
+	if items[0].Title != "Video One" {
+
+		t.Errorf(
+			"expected curated title, got %q",
+			items[0].Title,
+		)
+
 	}
 
 }

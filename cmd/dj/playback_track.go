@@ -84,14 +84,50 @@ func (m model) resolvePlaybackTrack(
 	m.PlaybackItem =
 		metadata.PlaybackItem{}
 
-	if snapshot.Artist != "" {
+	if m.SourceMedia.Valid() {
+
+		if m.SourceMedia.Artist != "" {
+
+			result.Track.Artist =
+				m.SourceMedia.Artist
+
+		}
+
+		if m.SourceMedia.Title != "" {
+
+			result.Track.Title =
+				m.SourceMedia.Title
+
+			result.Track.RawTitle =
+				m.SourceMedia.Title
+
+			result.Track.Valid = true
+
+		}
+
+		if m.SourceMedia.Ref.ID != "" {
+
+			result.TrackID =
+				string(
+					m.SourceMedia.Ref.Source.Kind,
+				) +
+					"\x00" +
+					m.SourceMedia.Ref.ID
+
+		}
+
+	}
+
+	if result.Track.Artist == "" &&
+		snapshot.Artist != "" {
 
 		result.Track.Artist =
 			snapshot.Artist
 
 	}
 
-	if snapshot.Title != "" {
+	if result.Track.Title == "" &&
+		snapshot.Title != "" {
 
 		result.Track.Title =
 			snapshot.Title

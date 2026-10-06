@@ -92,11 +92,24 @@ func (m model) startTrack(
 	m.LastTrack =
 		resolved.TrackID
 
-	m.LyricsState =
-		lyricsSearching
-
 	m.LyricsLookupDuration =
 		resolved.Duration
+
+	if !isRadio &&
+		resolved.Duration <= 0 {
+
+		m.LyricsState =
+			lyricsSearching
+
+		return m, tea.Batch(
+			tick(),
+			enrichmentCmd,
+		)
+
+	}
+
+	m.LyricsState =
+		lyricsSearching
 
 	return m, tea.Batch(
 		tick(),

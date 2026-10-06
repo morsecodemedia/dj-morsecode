@@ -144,6 +144,12 @@ func TestResolve(
 			key:  "x",
 			want: ActionNone,
 		},
+		{
+			name: "youtube",
+			mode: ModeTune,
+			key:  "y",
+			want: ActionOpenYouTube,
+		},
 	}
 
 	for _, test := range tests {

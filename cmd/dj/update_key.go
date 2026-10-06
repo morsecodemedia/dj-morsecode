@@ -7,6 +7,7 @@ import (
 	"github.com/morsecodemedia/dj-morsecode/internal/controls"
 	"github.com/morsecodemedia/dj-morsecode/internal/observation"
 	"github.com/morsecodemedia/dj-morsecode/internal/radio"
+	"github.com/morsecodemedia/dj-morsecode/internal/source"
 )
 
 func (m model) updateKey(
@@ -69,6 +70,9 @@ func (m model) updateKey(
 			if err != nil {
 				return m, nil
 			}
+
+			m.SourceMedia =
+				source.MediaItem{}
 
 			m.observeStation(
 				observation.StationTuneRequested,
@@ -146,6 +150,9 @@ func (m model) updateKey(
 				return m, nil
 			}
 
+			m.SourceMedia =
+				source.MediaItem{}
+
 			m.observeStation(
 				observation.StationTuneRequested,
 				station.ID,
@@ -220,6 +227,9 @@ func (m model) updateKey(
 				return m, nil
 			}
 
+			m.SourceMedia =
+				source.MediaItem{}
+
 			m.observeStation(
 				observation.StationTuneRequested,
 				station.ID,
@@ -286,6 +296,9 @@ func (m model) updateKey(
 				return m, nil
 			}
 
+			m.SourceMedia =
+				source.MediaItem{}
+
 			m.observeStation(
 				observation.StationTuneRequested,
 				station.ID,
@@ -323,6 +336,80 @@ func (m model) updateKey(
 
 		return m, nil
 
+	}
+
+	if m.YouTubePickerOpen {
+
+		items := youtubeItems()
+
+		switch key {
+
+		case "esc":
+
+			m.YouTubePickerOpen = false
+			return m, nil
+
+		case "up", "k":
+
+			if m.YouTubeIndex > 0 {
+				m.YouTubeIndex--
+			}
+
+			return m, nil
+
+		case "down", "j":
+
+			if m.YouTubeIndex <
+				len(items)-1 {
+
+				m.YouTubeIndex++
+			}
+
+			return m, nil
+
+		case "enter":
+
+			if len(items) == 0 {
+				return m, nil
+			}
+
+			item :=
+				items[m.YouTubeIndex]
+
+			// Playlists are catalog references,
+			// not directly supported here yet.
+			if item.Kind !=
+				source.MediaVideo {
+
+				return m, nil
+			}
+
+			if err := m.Player.Load(
+				item.Ref.URI,
+			); err != nil {
+
+				return m, nil
+			}
+
+			m.SourceMedia = item
+
+			m.ActiveIntent =
+				radio.Intent{}
+
+			m.PendingStationID = ""
+			m.PendingSince =
+				time.Time{}
+
+			m.FailedStationIDs =
+				nil
+
+			m.YouTubePickerOpen =
+				false
+
+			return m, nil
+		}
+
+		return m, nil
 	}
 
 	action := controls.Resolve(

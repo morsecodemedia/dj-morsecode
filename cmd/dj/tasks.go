@@ -135,6 +135,7 @@ func loadLRCLIBSong(
 			artist,
 			title,
 		)
+
 		if err != nil {
 			return lrclibSongMsg{
 				TrackID:  trackID,
@@ -147,6 +148,7 @@ func loadLRCLIBSong(
 			results,
 			duration,
 		)
+
 		if !ok {
 			return lrclibSongMsg{
 				TrackID:  trackID,

@@ -86,11 +86,19 @@ func (m model) updateTick(
 
 		if snapshot.IsRadio {
 
-			m.NowPlaying = m.PlaybackItem.DisplayTitle()
+			m.NowPlaying =
+				m.PlaybackItem.DisplayTitle()
+
+		} else if m.SourceMedia.Valid() &&
+			m.SourceMedia.Ref.Name != "" {
+
+			m.NowPlaying =
+				m.SourceMedia.Ref.Name
 
 		} else {
 
-			m.NowPlaying = track.RawTitle
+			m.NowPlaying =
+				track.RawTitle
 
 		}
 
@@ -99,6 +107,26 @@ func (m model) updateTick(
 				resolved,
 				snapshot.IsRadio,
 			)
+		}
+
+		if !snapshot.IsRadio &&
+			resolved.Duration > 0 &&
+			m.LyricsLookupDuration <= 0 &&
+			m.LyricsState == lyricsSearching {
+
+			m.LyricsLookupDuration =
+				resolved.Duration
+
+			return m, tea.Batch(
+				tick(),
+				loadLRCLIBSong(
+					resolved.TrackID,
+					track.Artist,
+					track.Title,
+					resolved.Duration,
+				),
+			)
+
 		}
 
 	}

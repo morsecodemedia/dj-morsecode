@@ -12,7 +12,11 @@ type Catalog struct {
 
 type CatalogEntry struct {
 	Name string
-	URL  string
+
+	Artist string
+	Title  string
+
+	URL string
 }
 
 func NewCatalog(
@@ -56,8 +60,16 @@ func (c *Catalog) Items(
 		item.Ref.Name =
 			entry.Name
 
+		item.Artist =
+			entry.Artist
+
 		item.Title =
-			entry.Name
+			entry.Title
+
+		if item.Title == "" {
+			item.Title =
+				entry.Name
+		}
 
 		items = append(
 			items,

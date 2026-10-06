@@ -86,6 +86,9 @@ func Resolve(
 		case "v":
 			return ActionOpenVibes
 
+		case "y":
+			return ActionOpenYouTube
+
 		}
 
 	case ModeEnhancements:

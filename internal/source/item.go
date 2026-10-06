@@ -6,6 +6,7 @@ const (
 	MediaUnknown  MediaKind = ""
 	MediaStation  MediaKind = "station"
 	MediaTrack    MediaKind = "track"
+	MediaVideo    MediaKind = "video"
 	MediaPlaylist MediaKind = "playlist"
 	MediaAlbum    MediaKind = "album"
 	MediaArtist   MediaKind = "artist"

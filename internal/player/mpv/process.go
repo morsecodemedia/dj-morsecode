@@ -41,6 +41,7 @@ func (p *Process) Start() error {
 		"mpv",
 		"--idle=yes",
 		"--no-terminal",
+		"--video=no",
 		"--input-ipc-server="+p.socketPath,
 	)
 

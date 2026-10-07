@@ -5,6 +5,7 @@ import "time"
 type MemorySink struct {
 	stations []StationObservation
 	playback []PlaybackObservation
+	media    []MediaObservation
 }
 
 func (s *MemorySink) PlaybackElapsed(
@@ -75,6 +76,28 @@ func (s *MemorySink) RecordPlayback(
 	)
 
 	return nil
+
+}
+
+func (s *MemorySink) RecordMedia(
+	observation MediaObservation,
+) error {
+
+	s.media = append(
+		s.media,
+		observation,
+	)
+
+	return nil
+
+}
+
+func (s *MemorySink) Media() []MediaObservation {
+
+	return append(
+		[]MediaObservation(nil),
+		s.media...,
+	)
 
 }
 

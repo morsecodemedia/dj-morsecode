@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/morsecodemedia/dj-morsecode/internal/metadata"
+	"github.com/morsecodemedia/dj-morsecode/internal/source"
 )
 
 func TestMemorySinkPlaybackElapsed(
@@ -193,6 +194,50 @@ func TestMemorySinkReturnsPlaybackCopy(
 			"expected stored observation to remain unchanged, got %q",
 			again[0].TrackID,
 		)
+	}
+
+}
+
+func TestMemorySinkMediaReturnsCopy(
+	t *testing.T,
+) {
+
+	sink := NewMemorySink()
+
+	item := source.MediaItem{
+		Kind: source.MediaVideo,
+
+		Ref: source.ItemRef{
+			Source: source.Source{
+				Kind: source.KindYouTube,
+			},
+			ID: "video-1",
+		},
+	}
+
+	err := sink.RecordMedia(
+		MediaObservation{
+			Item: item,
+		},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	media := sink.Media()
+
+	media[0].Item.Ref.ID =
+		"mutated"
+
+	fresh := sink.Media()
+
+	if fresh[0].Item.Ref.ID !=
+		"video-1" {
+
+		t.Fatal(
+			"expected media slice copy",
+		)
+
 	}
 
 }

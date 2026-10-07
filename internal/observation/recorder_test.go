@@ -5,7 +5,171 @@ import (
 	"time"
 
 	"github.com/morsecodemedia/dj-morsecode/internal/metadata"
+	"github.com/morsecodemedia/dj-morsecode/internal/source"
 )
+
+func testMediaItem() source.MediaItem {
+
+	return source.MediaItem{
+		Kind: source.MediaVideo,
+
+		Ref: source.ItemRef{
+			Source: source.Source{
+				Kind: source.KindYouTube,
+			},
+
+			ID:   "UnqR5XUcLew",
+			URI:  "https://www.youtube.com/watch?v=UnqR5XUcLew",
+			Name: "Beastie Boys - Intergalactic",
+		},
+
+		Artist: "Beastie Boys",
+		Title:  "Intergalactic",
+	}
+
+}
+
+func TestRecorderObserveMedia(
+	t *testing.T,
+) {
+
+	now := time.Date(
+		2026,
+		time.October,
+		7,
+		12,
+		0,
+		0,
+		0,
+		time.UTC,
+	)
+
+	recorder :=
+		newRecorderWithClock(
+			func() time.Time {
+				return now
+			},
+		)
+
+	item := testMediaItem()
+
+	observed, ok :=
+		recorder.ObserveMedia(
+			item,
+		)
+
+	if !ok {
+		t.Fatal(
+			"expected media observation",
+		)
+	}
+
+	if observed.Item.Ref.ID !=
+		item.Ref.ID {
+
+		t.Errorf(
+			"unexpected media ID %q",
+			observed.Item.Ref.ID,
+		)
+
+	}
+
+	if !observed.ObservedAt.Equal(
+		now,
+	) {
+
+		t.Errorf(
+			"unexpected observed time %v",
+			observed.ObservedAt,
+		)
+
+	}
+
+}
+
+func TestRecorderObserveMediaRejectsInvalidItem(
+	t *testing.T,
+) {
+
+	recorder := NewRecorder()
+
+	_, ok :=
+		recorder.ObserveMedia(
+			source.MediaItem{},
+		)
+
+	if ok {
+		t.Fatal(
+			"expected invalid media to be rejected",
+		)
+	}
+
+}
+
+func TestRecorderObserveMediaDeduplicatesCurrentItem(
+	t *testing.T,
+) {
+
+	recorder := NewRecorder()
+
+	item := testMediaItem()
+
+	if _, ok :=
+		recorder.ObserveMedia(
+			item,
+		); !ok {
+
+		t.Fatal(
+			"expected first observation",
+		)
+	}
+
+	if _, ok :=
+		recorder.ObserveMedia(
+			item,
+		); ok {
+
+		t.Fatal(
+			"expected duplicate observation to be ignored",
+		)
+	}
+
+}
+
+func TestRecorderObserveMediaRecordsRevisit(
+	t *testing.T,
+) {
+
+	recorder := NewRecorder()
+
+	first := testMediaItem()
+
+	second := testMediaItem()
+	second.Ref.ID = "another-video"
+	second.Ref.URI =
+		"https://www.youtube.com/watch?v=another-video"
+
+	if _, ok :=
+		recorder.ObserveMedia(first); !ok {
+
+		t.Fatal("expected first observation")
+	}
+
+	if _, ok :=
+		recorder.ObserveMedia(second); !ok {
+
+		t.Fatal("expected second observation")
+	}
+
+	if _, ok :=
+		recorder.ObserveMedia(first); !ok {
+
+		t.Fatal(
+			"expected revisit to be observed",
+		)
+	}
+
+}
 
 func TestRecorderSuppressesRepeatedPlaybackObservation(
 	t *testing.T,

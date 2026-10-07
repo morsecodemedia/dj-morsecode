@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/morsecodemedia/dj-morsecode/internal/metadata"
+	"github.com/morsecodemedia/dj-morsecode/internal/source"
 )
 
 type Recorder struct {
@@ -11,6 +12,7 @@ type Recorder struct {
 
 	lastStation  *StationObservation
 	lastPlayback *PlaybackObservation
+	lastMedia    *MediaObservation
 }
 
 func NewRecorder() *Recorder {
@@ -110,5 +112,49 @@ func samePlaybackObservation(
 			right.StationID &&
 		left.TrackID ==
 			right.TrackID
+
+}
+
+func (r *Recorder) ObserveMedia(
+	item source.MediaItem,
+) (MediaObservation, bool) {
+
+	if !item.Valid() {
+		return MediaObservation{}, false
+	}
+
+	observation := MediaObservation{
+		Item:       item,
+		ObservedAt: r.now(),
+	}
+
+	if r.lastMedia != nil &&
+		sameMediaObservation(
+			*r.lastMedia,
+			observation,
+		) {
+
+		return MediaObservation{}, false
+	}
+
+	r.lastMedia = &observation
+
+	return observation, true
+
+}
+
+func sameMediaObservation(
+	left MediaObservation,
+	right MediaObservation,
+) bool {
+
+	return left.Item.Kind ==
+		right.Item.Kind &&
+		left.Item.Ref.Source.Kind ==
+			right.Item.Ref.Source.Kind &&
+		left.Item.Ref.ID ==
+			right.Item.Ref.ID &&
+		left.Item.Ref.URI ==
+			right.Item.Ref.URI
 
 }

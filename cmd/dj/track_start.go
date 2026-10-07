@@ -12,7 +12,7 @@ import (
 
 func (m model) startTrack(
 	resolved playbackTrack,
-	isNetwork bool,
+	isRadio bool,
 ) (tea.Model, tea.Cmd) {
 
 	track := resolved.Track
@@ -35,13 +35,13 @@ func (m model) startTrack(
 	enrichmentDuration :=
 		time.Duration(0)
 
-	if isNetwork &&
+	if isRadio &&
 		m.PlaybackItem.Duration > 0 {
 
 		enrichmentDuration =
 			m.PlaybackItem.Duration
 
-	} else if !isNetwork {
+	} else if !isRadio {
 
 		enrichmentDuration =
 			resolved.Duration
@@ -92,11 +92,24 @@ func (m model) startTrack(
 	m.LastTrack =
 		resolved.TrackID
 
-	m.LyricsState =
-		lyricsSearching
-
 	m.LyricsLookupDuration =
 		resolved.Duration
+
+	if !isRadio &&
+		resolved.Duration <= 0 {
+
+		m.LyricsState =
+			lyricsSearching
+
+		return m, tea.Batch(
+			tick(),
+			enrichmentCmd,
+		)
+
+	}
+
+	m.LyricsState =
+		lyricsSearching
 
 	return m, tea.Batch(
 		tick(),

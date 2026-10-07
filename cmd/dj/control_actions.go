@@ -104,6 +104,14 @@ func (m model) applyControlAction(
 
 		return m, nil
 
+	case controls.ActionOpenYouTube:
+
+		m = m.leaveCommandMode()
+		m.YouTubePickerOpen = true
+		m.YouTubeIndex = 0
+
+		return m, nil
+
 	case controls.ActionOpenObservations:
 
 		m = m.leaveCommandMode()

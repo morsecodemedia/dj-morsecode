@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 
 	"github.com/morsecodemedia/dj-morsecode/internal/metadata"
 	"github.com/morsecodemedia/dj-morsecode/internal/musicbrainz"
@@ -17,6 +18,12 @@ func main() {
 		"verbose",
 		false,
 		"show MusicBrainz lookup details",
+	)
+
+	durationSeconds := flag.Float64(
+		"duration",
+		0,
+		"observed track duration in seconds",
 	)
 
 	flag.Parse()
@@ -159,6 +166,21 @@ func main() {
 		Title:  title,
 	}
 
+	if *durationSeconds > 0 {
+
+		observed.Duration =
+			time.Duration(
+				*durationSeconds *
+					float64(time.Second),
+			)
+
+		fmt.Printf(
+			"\nObserved duration: %.3fs\n",
+			observed.Duration.Seconds(),
+		)
+
+	}
+
 	match, status := metadata.MatchEnrichment(
 		observed,
 		candidates,
@@ -178,6 +200,29 @@ func main() {
 			match.Track.Artist,
 			match.Track.Title,
 		)
+
+		if match.Duration > 0 {
+
+			fmt.Printf(
+				"Duration: %.3fs\n",
+				match.Duration.Seconds(),
+			)
+
+		}
+
+		fmt.Printf(
+			"Provider: %s\n",
+			match.Provider,
+		)
+
+		if observed.Duration > 0 {
+
+			fmt.Printf(
+				"Observed duration: %.3fs\n\n",
+				observed.Duration.Seconds(),
+			)
+
+		}
 
 		fmt.Printf(
 			"Provider: %s\n",

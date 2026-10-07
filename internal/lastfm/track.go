@@ -12,3 +12,8 @@ type TrackInfo struct {
 
 	Tags []Tag
 }
+
+type SimilarTrack struct {
+	Track TrackInfo
+	Match float64
+}

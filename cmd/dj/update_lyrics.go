@@ -17,12 +17,14 @@ func (m model) updateLyrics(
 
 	if msg.Duration !=
 		m.LyricsLookupDuration {
-
 		return m, nil
 	}
 
 	if msg.Err != nil {
-		m.LyricsState = lyricsUnavailable
+
+		m.LyricsState =
+			lyricsUnavailable
+
 		return m, nil
 	}
 
@@ -32,7 +34,10 @@ func (m model) updateLyrics(
 		msg.Content,
 	)
 	if err != nil {
-		m.LyricsState = lyricsUnavailable
+
+		m.LyricsState =
+			lyricsUnavailable
+
 		return m, nil
 	}
 

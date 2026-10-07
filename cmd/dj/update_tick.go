@@ -34,6 +34,9 @@ func (m model) updateTick(
 			path,
 		)
 
+	snapshot.IsRadio =
+		stationFound
+
 	var stop bool
 	var resolved playbackTrack
 
@@ -42,7 +45,7 @@ func (m model) updateTick(
 			snapshot,
 		)
 
-	if snapshot.IsNetwork &&
+	if snapshot.IsRadio &&
 		resolved.Observed {
 
 		m.observePlayback(
@@ -67,7 +70,7 @@ func (m model) updateTick(
 
 	track := resolved.Track
 
-	if snapshot.IsNetwork &&
+	if snapshot.IsRadio &&
 		resolved.Observed &&
 		!m.PlaybackItem.IsTrack() {
 
@@ -81,21 +84,49 @@ func (m model) updateTick(
 
 	if track.Valid {
 
-		if snapshot.IsNetwork {
+		if snapshot.IsRadio {
 
-			m.NowPlaying = m.PlaybackItem.DisplayTitle()
+			m.NowPlaying =
+				m.PlaybackItem.DisplayTitle()
+
+		} else if m.SourceMedia.Valid() &&
+			m.SourceMedia.Ref.Name != "" {
+
+			m.NowPlaying =
+				m.SourceMedia.Ref.Name
 
 		} else {
 
-			m.NowPlaying = track.RawTitle
+			m.NowPlaying =
+				track.RawTitle
 
 		}
 
 		if resolved.TrackID != m.LastTrack {
 			return m.startTrack(
 				resolved,
-				snapshot.IsNetwork,
+				snapshot.IsRadio,
 			)
+		}
+
+		if !snapshot.IsRadio &&
+			resolved.Duration > 0 &&
+			m.LyricsLookupDuration <= 0 &&
+			m.LyricsState == lyricsSearching {
+
+			m.LyricsLookupDuration =
+				resolved.Duration
+
+			return m, tea.Batch(
+				tick(),
+				loadLRCLIBSong(
+					resolved.TrackID,
+					track.Artist,
+					track.Title,
+					resolved.Duration,
+				),
+			)
+
 		}
 
 	}

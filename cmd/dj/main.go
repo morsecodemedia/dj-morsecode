@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"time"
@@ -17,7 +18,9 @@ import (
 	"github.com/morsecodemedia/dj-morsecode/internal/player"
 	"github.com/morsecodemedia/dj-morsecode/internal/player/mpv"
 	"github.com/morsecodemedia/dj-morsecode/internal/radio"
+	"github.com/morsecodemedia/dj-morsecode/internal/source"
 	"github.com/morsecodemedia/dj-morsecode/internal/ui"
+	"github.com/morsecodemedia/dj-morsecode/internal/youtube"
 )
 
 type lyricsState int
@@ -63,6 +66,7 @@ type model struct {
 	NowPlaying             string
 	LastTrack              string
 	PlaybackItem           metadata.PlaybackItem
+	SourceMedia            source.MediaItem
 	LyricsState            lyricsState
 	LyricsLookupDuration   time.Duration
 	LyricsVisible          bool
@@ -79,6 +83,8 @@ type model struct {
 	VibePickerOpen         bool
 	MoodPickerOpen         bool
 	GenrePickerOpen        bool
+	YouTubePickerOpen      bool
+	YouTubeIndex           int
 	MoodIndex              int
 	GenreIndex             int
 	VibeIndex              int
@@ -298,6 +304,9 @@ func (m model) tuneHistory(
 		return m
 	}
 
+	m.SourceMedia =
+		source.MediaItem{}
+
 	m.observeStation(
 		observation.StationTuneRequested,
 		station.ID,
@@ -339,7 +348,14 @@ func (m model) playbackPosition() time.Duration {
 		return 0
 	}
 
-	if !m.Player.IsNetwork() {
+	path := m.Player.Path()
+
+	_, isRadio :=
+		radio.FindByStreamURL(
+			path,
+		)
+
+	if !isRadio {
 		return m.Player.Position()
 	}
 
@@ -403,7 +419,7 @@ func (m model) footerText() string {
 
 	case controls.ModeTune:
 
-		return "TUNE • s stations • g genres • m moods • v vibes • esc cancel"
+		return "TUNE • s stations • g genres • m moods • v vibes • y youtube • esc cancel"
 
 	case controls.ModeEnhancements:
 
@@ -457,6 +473,23 @@ func (m model) volumeControlLabel() string {
 		"v volume %.0f%%",
 		volume,
 	)
+
+}
+
+func youtubeItems() []source.MediaItem {
+
+	catalog := youtube.NewCatalog(
+		youtube.Curated,
+	)
+
+	items, err := catalog.Items(
+		context.Background(),
+	)
+	if err != nil {
+		return nil
+	}
+
+	return items
 
 }
 
@@ -557,6 +590,16 @@ func (m model) View() string {
 		return ui.RenderStationPicker(
 			radio.Stations,
 			m.StationIndex,
+			m.Width,
+		)
+
+	}
+
+	if m.YouTubePickerOpen {
+
+		return ui.RenderYouTubePicker(
+			youtubeItems(),
+			m.YouTubeIndex,
 			m.Width,
 		)
 

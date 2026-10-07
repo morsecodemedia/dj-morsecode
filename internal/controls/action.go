@@ -25,6 +25,7 @@ const (
 	ActionOpenGenres
 	ActionOpenMoods
 	ActionOpenVibes
+	ActionOpenYouTube
 
 	ActionToggleLyrics
 

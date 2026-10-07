@@ -1,0 +1,10 @@
+#EXTM3U
+
+#EXTINF:-1,Z100
+https://example.com/z100
+
+#EXTINF:-1,SKA World
+https://example.com/ska
+
+#EXTINF:252,Stone Temple Pilots - Interstate Love Song
+/Users/example/Music/interstate-love-song.mp3

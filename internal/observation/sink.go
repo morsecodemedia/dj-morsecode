@@ -8,4 +8,8 @@ type Sink interface {
 	RecordPlayback(
 		PlaybackObservation,
 	) error
+
+	RecordMedia(
+		MediaObservation,
+	) error
 }

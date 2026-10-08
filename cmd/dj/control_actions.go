@@ -122,7 +122,7 @@ func (m model) applyControlAction(
 	case controls.ActionOpenHistory:
 
 		m = m.leaveCommandMode()
-		m.StationHistoryOpen = true
+		m.ListeningHistoryOpen = true
 
 		return m, nil
 

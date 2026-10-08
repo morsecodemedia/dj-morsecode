@@ -10,12 +10,24 @@ import (
 
 func (m model) reconcileStationIdentity(
 	path string,
+	idle bool,
 ) (model, *radio.Station, bool) {
 
 	station, found :=
 		radio.FindByStreamURL(
 			path,
 		)
+
+	if !found &&
+		!idle &&
+		m.PendingStationID != "" {
+
+		station, found =
+			radio.Find(
+				m.PendingStationID,
+			)
+
+	}
 
 	if found {
 
@@ -64,6 +76,27 @@ func (m model) reconcileStationLifecycle(
 	idle bool,
 	now time.Time,
 ) (model, bool) {
+
+	if !stationFound &&
+		m.PendingStationID != "" &&
+		!idle {
+
+		pendingStation, ok :=
+			radio.Find(
+				m.PendingStationID,
+			)
+
+		if ok {
+
+			station = pendingStation
+			stationFound = true
+
+			m.CurrentStationID =
+				pendingStation.ID
+
+		}
+
+	}
 
 	if stationFound {
 

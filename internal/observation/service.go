@@ -1,6 +1,9 @@
 package observation
 
-import "github.com/morsecodemedia/dj-morsecode/internal/metadata"
+import (
+	"github.com/morsecodemedia/dj-morsecode/internal/metadata"
+	"github.com/morsecodemedia/dj-morsecode/internal/source"
+)
 
 type Service struct {
 	recorder *Recorder
@@ -102,6 +105,49 @@ func (s *Service) ObservePlayback(
 	}
 
 	err := s.sink.RecordPlayback(
+		observation,
+	)
+
+	return observation,
+		true,
+		err
+
+}
+
+func (s *Service) ObserveMedia(
+	item source.MediaItem,
+) (
+	MediaObservation,
+	bool,
+	error,
+) {
+
+	if s == nil ||
+		s.recorder == nil {
+
+		return MediaObservation{},
+			false,
+			nil
+	}
+
+	observation, recorded :=
+		s.recorder.ObserveMedia(
+			item,
+		)
+
+	if !recorded {
+		return MediaObservation{},
+			false,
+			nil
+	}
+
+	if s.sink == nil {
+		return observation,
+			true,
+			nil
+	}
+
+	err := s.sink.RecordMedia(
 		observation,
 	)
 

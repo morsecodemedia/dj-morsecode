@@ -305,8 +305,13 @@ func (m model) updateKey(
 			)
 
 			m.ActiveIntent = radio.Intent{}
-			m.PendingStationID = ""
-			m.PendingSince = time.Time{}
+
+			m.PendingStationID =
+				station.ID
+
+			m.PendingSince =
+				time.Now()
+
 			m.StationPickerOpen = false
 			m.FailedStationIDs = nil
 
@@ -390,6 +395,8 @@ func (m model) updateKey(
 
 				return m, nil
 			}
+
+			m = m.clearTrackState()
 
 			m.SourceMedia = item
 

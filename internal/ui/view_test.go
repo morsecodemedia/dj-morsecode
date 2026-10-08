@@ -5,8 +5,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/morsecodemedia/dj-morsecode/internal/history"
 	"github.com/morsecodemedia/dj-morsecode/internal/metadata"
 	"github.com/morsecodemedia/dj-morsecode/internal/music"
+	"github.com/morsecodemedia/dj-morsecode/internal/source"
 )
 
 func renderTestTrack(
@@ -203,6 +205,135 @@ func TestRenderHidesLyrics(
 
 		t.Fatal(
 			"expected lyrics section to be hidden",
+		)
+	}
+
+}
+
+func TestRenderListeningHistoryEmpty(
+	t *testing.T,
+) {
+
+	view := RenderListeningHistory(
+		nil,
+		72,
+	)
+
+	if !strings.Contains(
+		view,
+		"HISTORY",
+	) {
+
+		t.Fatal(
+			"expected history heading",
+		)
+	}
+
+	if !strings.Contains(
+		view,
+		"No listening history yet.",
+	) {
+
+		t.Fatal(
+			"expected empty history message",
+		)
+	}
+
+}
+
+func TestRenderListeningHistoryStation(
+	t *testing.T,
+) {
+
+	view := RenderListeningHistory(
+		[]history.Entry{
+			{
+				Kind: history.KindStation,
+
+				StationID: "hardrockradiofm",
+
+				PlayedAt: time.Date(
+					2026,
+					time.October,
+					7,
+					22,
+					56,
+					17,
+					0,
+					time.UTC,
+				),
+			},
+		},
+		72,
+	)
+
+	if !strings.Contains(
+		view,
+		"Hard Rock Radio FM",
+	) {
+
+		t.Fatal(
+			"expected station name",
+		)
+	}
+
+	if !strings.Contains(
+		view,
+		"22:56:17",
+	) {
+
+		t.Fatal(
+			"expected timestamp",
+		)
+	}
+
+}
+
+func TestRenderListeningHistoryMedia(
+	t *testing.T,
+) {
+
+	view := RenderListeningHistory(
+		[]history.Entry{
+			{
+				Kind: history.KindMedia,
+
+				Media: source.MediaItem{
+					Kind: source.MediaVideo,
+
+					Ref: source.ItemRef{
+						Source: source.Source{
+							Kind: source.KindYouTube,
+						},
+
+						ID: "qORYO0atB6g",
+
+						Name: "Beastie Boys - Intergalactic",
+					},
+				},
+
+				PlayedAt: time.Date(
+					2026,
+					time.October,
+					7,
+					22,
+					55,
+					20,
+					0,
+					time.UTC,
+				),
+			},
+		},
+		72,
+	)
+
+	if !strings.Contains(
+		view,
+		"Beastie Boys - Intergalactic",
+	) {
+
+		t.Fatal(
+			"expected media name",
 		)
 	}
 

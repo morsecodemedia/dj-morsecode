@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/morsecodemedia/dj-morsecode/internal/history"
 	"github.com/morsecodemedia/dj-morsecode/internal/metadata"
 	"github.com/morsecodemedia/dj-morsecode/internal/music"
 	"github.com/morsecodemedia/dj-morsecode/internal/observation"
@@ -249,8 +250,8 @@ func RenderGenrePicker(
 
 }
 
-func RenderStationHistory(
-	history radio.History,
+func RenderListeningHistory(
+	entries []history.Entry,
 	width int,
 ) string {
 
@@ -264,7 +265,7 @@ func RenderStationHistory(
 	s.WriteString("\n\n")
 
 	s.WriteString(Center(
-		Header.Render("STATION HISTORY"),
+		Header.Render("HISTORY"),
 		width,
 	))
 
@@ -272,39 +273,79 @@ func RenderStationHistory(
 	s.WriteString(Divider(width))
 	s.WriteString("\n\n")
 
-	if len(history.Tunes) == 0 {
+	if len(entries) == 0 {
 
 		s.WriteString(
-			Artist.Render("No stations tuned yet."),
+			Artist.Render(
+				"No listening history yet.",
+			),
 		)
 
 	} else {
 
-		for i := len(history.Tunes) - 1; i >= 0; i-- {
+		for _, entry := range entries {
 
-			tune := history.Tunes[i]
+			label := ""
 
-			station, ok := radio.Find(
-				tune.StationID,
-			)
+			switch entry.Kind {
 
-			name := tune.StationID
+			case history.KindStation:
 
-			if ok {
-				name = station.Name
+				label = entry.StationID
+
+				if station, ok :=
+					radio.Find(
+						entry.StationID,
+					); ok {
+
+					label = station.Name
+				}
+
+			case history.KindMedia:
+
+				label =
+					entry.Media.Ref.Name
+
+				if label == "" &&
+					entry.Media.Artist != "" &&
+					entry.Media.Title != "" {
+
+					label =
+						entry.Media.Artist +
+							" - " +
+							entry.Media.Title
+				}
+
+				if label == "" {
+					label =
+						entry.Media.Title
+				}
+
+				if label == "" {
+					label =
+						entry.Media.Ref.ID
+				}
+
 			}
 
-			prefix := "  "
-
-			if history.IsCurrent(i) {
-				prefix = "▶ "
+			if label == "" {
+				continue
 			}
+
+			timestamp :=
+				entry.PlayedAt.Format(
+					"15:04:05",
+				)
 
 			s.WriteString(
-				Artist.Render(prefix + name),
+				Artist.Render(
+					timestamp +
+						"  " +
+						label,
+				),
 			)
-			s.WriteString("\n")
 
+			s.WriteString("\n")
 		}
 
 	}
@@ -314,12 +355,13 @@ func RenderStationHistory(
 	s.WriteString("\n\n")
 
 	s.WriteString(Center(
-		Footer.Render("h or esc to return"),
+		Footer.Render(
+			"h or esc to return",
+		),
 		width,
 	))
 
 	return s.String()
-
 }
 
 func RenderObservationHistory(

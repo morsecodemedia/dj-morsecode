@@ -10,6 +10,7 @@ import (
 	trackcontext "github.com/morsecodemedia/dj-morsecode/internal/context"
 	"github.com/morsecodemedia/dj-morsecode/internal/controls"
 	"github.com/morsecodemedia/dj-morsecode/internal/enrichment"
+	"github.com/morsecodemedia/dj-morsecode/internal/history"
 	"github.com/morsecodemedia/dj-morsecode/internal/lastfm"
 	"github.com/morsecodemedia/dj-morsecode/internal/metadata"
 	"github.com/morsecodemedia/dj-morsecode/internal/music"
@@ -78,7 +79,7 @@ type model struct {
 	ObservationHistory     *observation.MemorySink
 	CommandMode            controls.Mode
 	StationPickerOpen      bool
-	StationHistoryOpen     bool
+	ListeningHistoryOpen   bool
 	ObservationHistoryOpen bool
 	VibePickerOpen         bool
 	MoodPickerOpen         bool
@@ -593,10 +594,24 @@ func (m model) View() string {
 
 	}
 
-	if m.StationHistoryOpen {
+	if m.ListeningHistoryOpen {
 
-		return ui.RenderStationHistory(
-			m.StationHistory,
+		if m.ObservationHistory == nil {
+
+			return ui.RenderListeningHistory(
+				nil,
+				m.Width,
+			)
+
+		}
+
+		entries := history.Derive(
+			m.ObservationHistory.Stations(),
+			m.ObservationHistory.Media(),
+		)
+
+		return ui.RenderListeningHistory(
+			entries,
 			m.Width,
 		)
 

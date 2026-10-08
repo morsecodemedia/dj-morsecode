@@ -263,12 +263,12 @@ func (m model) updateKey(
 
 	}
 
-	if m.StationHistoryOpen {
+	if m.ListeningHistoryOpen {
 
 		switch key {
 
 		case "esc", "h":
-			m.StationHistoryOpen = false
+			m.ListeningHistoryOpen = false
 			return m, nil
 
 		}

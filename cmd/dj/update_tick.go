@@ -32,6 +32,7 @@ func (m model) updateTick(
 	m, station, stationFound =
 		m.reconcileStationIdentity(
 			path,
+			snapshot.IsIdle,
 		)
 
 	snapshot.IsRadio =
@@ -52,6 +53,16 @@ func (m model) updateTick(
 			m.PlaybackItem,
 			m.CurrentStationID,
 			resolved.TrackID,
+		)
+
+	}
+
+	if !snapshot.IsRadio &&
+		!snapshot.IsIdle &&
+		m.SourceMedia.Valid() {
+
+		m.observeMedia(
+			m.SourceMedia,
 		)
 
 	}
@@ -103,10 +114,12 @@ func (m model) updateTick(
 		}
 
 		if resolved.TrackID != m.LastTrack {
+
 			return m.startTrack(
 				resolved,
 				snapshot.IsRadio,
 			)
+
 		}
 
 		if !snapshot.IsRadio &&

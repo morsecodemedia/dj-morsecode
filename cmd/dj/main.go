@@ -184,6 +184,21 @@ func (m model) observePlayback(
 
 }
 
+func (m model) observeMedia(
+	item source.MediaItem,
+) {
+
+	if m.ObservationService == nil {
+		return
+	}
+
+	_, _, _ =
+		m.ObservationService.ObserveMedia(
+			item,
+		)
+
+}
+
 func (m model) tuneStation(
 	station *radio.Station,
 ) model {
@@ -563,6 +578,7 @@ func (m model) View() string {
 			return ui.RenderObservationHistory(
 				nil,
 				nil,
+				nil,
 				m.Width,
 			)
 
@@ -571,6 +587,7 @@ func (m model) View() string {
 		return ui.RenderObservationHistory(
 			m.ObservationHistory.Stations(),
 			m.ObservationHistory.Playback(),
+			m.ObservationHistory.Media(),
 			m.Width,
 		)
 

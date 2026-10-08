@@ -325,6 +325,7 @@ func RenderStationHistory(
 func RenderObservationHistory(
 	stations []observation.StationObservation,
 	playback []observation.PlaybackObservation,
+	media []observation.MediaObservation,
 	width int,
 ) string {
 
@@ -341,7 +342,7 @@ func RenderObservationHistory(
 	items := make(
 		[]historyItem,
 		0,
-		len(stations)+len(playback),
+		len(stations)+len(playback)+len(media),
 	)
 
 	for _, observed := range stations {
@@ -380,6 +381,44 @@ func RenderObservationHistory(
 
 		if detail == "" {
 			detail = observed.Item.RawTitle
+		}
+
+		items = append(
+			items,
+			historyItem{
+				observedAt: observed.ObservedAt,
+				label:      label,
+				detail:     detail,
+			},
+		)
+
+	}
+
+	for _, observed := range media {
+
+		label := strings.ToUpper(
+			string(observed.Item.Kind),
+		)
+
+		detail := observed.Item.Ref.Name
+
+		if detail == "" &&
+			observed.Item.Artist != "" &&
+			observed.Item.Title != "" {
+
+			detail =
+				observed.Item.Artist +
+					" - " +
+					observed.Item.Title
+
+		}
+
+		if detail == "" {
+			detail = observed.Item.Title
+		}
+
+		if detail == "" {
+			detail = observed.Item.Ref.ID
 		}
 
 		items = append(

@@ -9,17 +9,42 @@ The roadmap is organized around product directions rather than promised release 
 DJ MorseCode currently provides:
 
 - live internet-radio playback through mpv
+- audio-only finite network-media playback
 - direct station tuning
 - mood, genre, and vibe-based station discovery
 - browser-style station back/forward navigation
+- chronological session listening history
+- provider-neutral source identity and provenance
+- M3U playlist parsing and station proposals
+- curated YouTube media playback
+- Last.fm similar-track discovery
 - playback controls for pause, mute, and volume
 - tiered contextual keyboard controls
 - normalized provider-specific stream metadata
+- redirected-stream station reconciliation
 - MusicBrainz identity and release enrichment
 - Last.fm contextual tags
-- playback and station observations
+- station, playback, and source-media observations
 - LRCLIB lyric discovery with local caching
 - plain and synchronized lyric content
+
+## Listening History
+
+The current session history records confirmed station tunes and explicitly played source media while preserving revisits chronologically.
+
+Listening history is intentionally separate from browser-style station navigation and from raw observation history.
+
+Future work includes:
+
+- persistence across application sessions
+- track-level history derived from radio playback observations
+- meaningful-listen thresholds before a track counts as heard
+- filtering and grouping
+- source and provenance display
+- session summaries
+- listening intelligence
+
+Track-level history should not be introduced until DJ MorseCode has an explicit definition of what constitutes a meaningful listen.
 
 ## Session Intelligence
 
@@ -57,7 +82,8 @@ Potential directions include:
 
 - favorite stations
 - disliked stations
-- longer-term listening history
+- persistent listening history across sessions
+- track-level listening history with meaningful-listen semantics
 - preference learning
 - session memory
 - time-of-day behavior
@@ -75,13 +101,17 @@ Potential lifecycle:
 
 ```text
 Active
-  ↓
+  |
+  v
 failed tune attempts
-  ↓
+  |
+  v
 warning threshold
-  ↓
+  |
+  v
 flagged for decommission
-  ↓
+  |
+  v
 decommissioned
 ```
 
@@ -89,13 +119,15 @@ A station that reaches a threshold such as five independent failed tune attempts
 
 A temporary outage should not permanently condemn a station.
 
+Station health should build on durable observations rather than inventing a second failure-tracking model.
+
 ## DJ Notes
 
 Inspired by VH1 Pop-Up Video.
 
 Occasionally surface small pieces of context without interrupting playback.
 
-Examples:
+### Examples:
 
 > This guitar solo was recorded in one take.
 
@@ -109,56 +141,78 @@ Notes should disappear automatically and never become walls of text.
 
 Playback should not be permanently tied to one source.
 
-Possible future adapters include:
+The source layer now provides provider-neutral media identity, provenance, catalog capabilities, and discovery capabilities.
 
-* local libraries
-* Jellyfin
-* Navidrome
-* Spotify
-* Apple Music
-* YouTube Music
-* Last.FM
-* other radio catalogs
+Current integrations include:
+
+- built-in radio stations
+- M3U station catalogs and proposals
+- curated YouTube media
+- Last.fm track discovery
+
+Possible future playback or catalog adapters include:
+
+- local libraries
+- Jellyfin
+- Navidrome
+- Spotify
+- Apple Music
+- YouTube Music
+- additional radio catalogs
 
 The terminal renderer should care about what is playing, not where it came from.
+
+Source providers should describe media and discovery.
+
+Playback adapters should describe how media is transported.
+
+Those responsibilities should remain independent.
 
 ## Lyrics and Enrichment
 
 Lyrics should remain provider-agnostic.
 
-Reliable lyric acquisition and readable lyric content are the current priority.
+Reliable lyric acquisition and readable lyric content remain the priority.
 
-Synchronized lyric highlighting is an optional future enhancement rather than
-a requirement for displaying lyrics.
+Current enrichment includes:
+
+- MusicBrainz recording identity
+- MusicBrainz release information
+- Last.fm contextual tags
+- LRCLIB plain and synchronized lyrics
 
 Potential future enhancements include:
 
-* additional lyric providers
-* user-managed local LRC discovery
-* richer lyric provenance
-* transcripts for non-music media
-* track and artist context
+- additional lyric providers
+- user-managed local LRC discovery
+- richer lyric provenance
+- transcripts for non-music media
+- richer track and artist context
+- enrichment confidence and provenance in the UI
+
+Lyrics availability and lyrics visibility should remain separate concepts.
+
+The lyrics panel should default to hidden while still exposing whether lyrics are available.
 
 ## Catalogs
 
 Potential station-catalog improvements include:
 
-* user-managed station configuration
-* M3U catalog imports
-* multiple endpoints per station
-* preferred codec/quality selection
-* endpoint failover
-* catalog health tooling
+- user-managed station configuration
+- user-managed M3U catalog configuration
+- multiple endpoints per station
+- preferred codec/quality selection
+- endpoint failover
+- catalog health tooling
+- persistent imported catalogs
 
 ## Catalog Intelligence
 
-DJ MorseCode should make adding and maintaining stations substantially easier
-than manually researching and classifying them.
+DJ MorseCode should make adding and maintaining stations substantially easier than manually researching and classifying them.
 
 ### Assisted Station Import
 
-Given a stream URL and optional homepage, inspect available source evidence and
-produce a structured station proposal.
+Given a stream URL and optional homepage, inspect available source evidence and produce a structured station proposal.
 
 Potential evidence includes:
 
@@ -166,7 +220,7 @@ Potential evidence includes:
 - station name and description
 - declared genres
 - homepage content
-- current/sample track metadata
+- current or sample track metadata
 - existing DJ MorseCode catalog taxonomy
 
 An LLM-backed classifier may use this evidence to propose:
@@ -179,12 +233,11 @@ An LLM-backed classifier may use this evidence to propose:
 - energy
 - other catalog metadata
 
-Generated classifications must conform to DJ MorseCode's existing taxonomy
-rather than inventing arbitrary categories.
+Generated classifications must conform to DJ MorseCode's existing taxonomy rather than inventing arbitrary categories.
 
 Imports should be reviewable before becoming part of the active catalog.
-Generated values should retain enough provenance to understand why they were
-selected.
+
+Generated values should retain enough provenance to understand why they were selected.
 
 Future ingestion sources may include:
 
@@ -194,14 +247,45 @@ Future ingestion sources may include:
 - external radio catalogs
 - user-maintained catalog files
 
+## Observability and Diagnostics
+
+Observation History provides raw runtime evidence, but debugging should not require exiting DJ MorseCode or adding temporary logging.
+
+Add a live, read-only playback and metadata inspector under the Info controls.
+
+Useful diagnostic state includes:
+
+- current mpv path
+- idle state
+- playback position and duration
+- raw mpv metadata
+- normalized playback metadata
+- source media identity and provenance
+- current and pending station identity
+- resolved station identity
+- track identity
+- enrichment status and provider
+- lyric state and lookup duration
+
+The inspector should update through the normal application tick and must not become another state machine.
+
 ## Interface
 
 The idle screen may eventually evolve into a lightweight home view containing useful context such as:
 
-* quick-start intents
-* recently tuned stations
-* favorite stations
-* current station health
+- quick-start intents
+- recent listening history
+- favorite stations
+- current station health
+
+Additional interface work includes:
+
+- lyrics hidden by default
+- live playback and metadata inspector
+- DJ Notes
+- optional Follow Mode
+- broader UI cleanup
+- history filtering and grouping
 
 It should still feel like another pane in tmux rather than another application.
 
@@ -209,10 +293,10 @@ It should still feel like another pane in tmux rather than another application.
 
 The architecture may eventually support listening contexts beyond live music radio:
 
-* podcasts
-* audiobooks
-* spoken-word streams
-* local media
+- podcasts
+- audiobooks
+- spoken-word streams
+- local media
 
 Those modes should earn their way into the product rather than complicating the radio experience prematurely.
 
@@ -222,21 +306,20 @@ Every feature should still make someone smile.
 
 ## MISC TODO
 
-TODO: Application-layer refactor
-  → get cmd/dj under control without changing behavior
-
-TODO: Persistence/session foundation
+### TODO: Persistence/session foundation
   → durable observations
-  → chronological listening history
+  → persist listening history across sessions
+  → track-level history / meaningful-listen semantics
   → station health
 
-TODO: Catalog evolution
+### TODO: Catalog evolution
   → stations become data rather than compiled Go
+  → user-managed M3U catalogs
   → assisted URL/homepage importer
   → taxonomy-constrained LLM classification
   → review/provenance workflow
 
-TODO: Session Intelligence
+### TODO: Session Intelligence
   → Keep Cookin'
   → Surprise Me
   → Go Deeper
@@ -244,25 +327,10 @@ TODO: Session Intelligence
   → Go Harder
   → Cool It Down
   → Encore
-  
-TODO: Experience/UI
+
+### TODO: Experience/UI
   → DJ Notes
-  → lyrics panel
+  → lyrics panel hidden by default
+  → live playback/metadata debug inspector
   → optional Follow Mode
   → broader UI cleanup
-
-TODO: Separate station navigation from listening history.
-
-Current radio.History now serves browser-style b/n navigation with a cursor,
-so navigating backward/forward does not create duplicate tune entries.
-
-The Station History UI therefore currently reflects navigation history rather
-than chronological listening history.
-
-Future cleanup:
-- Preserve navigation history + cursor for b/n controls.
-- Derive/display chronological station listening history separately, ideally
-  from tune-confirmed observations.
-- Station History should show every successful tune chronologically, including
-  revisits (e.g. Z100 → SKA World → Z100).
-- Active marker should identify the currently tuned station/event.

@@ -58,7 +58,9 @@ Every feature should make someone smile.
 
 ## What DJ MorseCode Does
 
-DJ MorseCode is a terminal-based radio companion that turns listening intent into continuous music.
+DJ MorseCode is a terminal-based listening companion that turns intent into continuous music while keeping discovery at the center of the experience.
+
+Internet radio remains the heart of the DJ, but playback is no longer architecturally tied to radio. DJ MorseCode can also play curated source media through the same playback, enrichment, lyric, observation, and history pipelines.
 
 Instead of building playlists, choose how you want to listen:
 
@@ -66,10 +68,11 @@ Instead of building playlists, choose how you want to listen:
 - **Moods** describe how the music should feel.
 - **Genres** describe the musical neighborhood.
 - **Stations** let you take direct control when you already know what you want.
+- **Source media** provides explicitly curated on-demand listening when appropriate.
 
-DJ MorseCode selects an appropriate internet radio station, remembers where it has been, introduces variety, rotates stations during programmed sessions, and recovers from failed streams without abandoning the listening intent.
+DJ MorseCode selects appropriate internet radio stations, remembers where it has been, introduces variety, rotates stations during programmed sessions, and recovers from failed streams without abandoning the listening intent.
 
-MPV handles audio playback while DJ MorseCode handles the programming.
+mpv handles audio playback while DJ MorseCode handles programming, source identity, enrichment, observations, and listening history.
 
 ## Quick Start
 
@@ -79,15 +82,16 @@ DJ MorseCode currently requires:
 
 - Go 1.26.5
 - mpv
+- yt-dlp for YouTube playback
 - A terminal with Unicode and color support
-- Internet access for radio streams and remote lyric retrieval
+- Internet access for streams, source media, enrichment, and remote lyric retrieval
 
 The currently tested mpv version is 0.41.0.
 
 On macOS with Homebrew:
 
 ```bash
-brew install mpv
+brew install mpv yt-dlp
 ```
 
 ### Run
@@ -108,22 +112,27 @@ When DJ MorseCode exits normally, it also shuts down the mpv process and removes
 
 ## Controls
 
-| Key | Action |
-| --- | --- |
-| `s` | Choose a station |
-| `v` | Choose a vibe |
-| `m` | Choose a mood |
-| `g` | Choose a genre |
-| `n` | Choose the next station within the active session |
-| `h` | View station history |
-| `q` | Sign off |
-| `Ctrl-C` | Sign off |
-| `↑` / `↓` | Navigate a picker |
-| `j` / `k` | Navigate a picker |
-| `Enter` | Select |
-| `Esc` | Close a picker |
+DJ MorseCode uses contextual controls. Available commands depend on the current control mode.
 
-`n` only has meaning during an active vibe, mood, or genre session. Choosing a station manually with `s` ends the active programmed session and returns control to you.
+Core interactions include:
+
+- choosing a station
+- choosing a vibe
+- choosing a mood
+- choosing a genre
+- choosing curated source media
+- moving backward and forward through station navigation history
+- viewing chronological listening history
+- viewing raw observation history
+- pausing and resuming playback
+- muting and unmuting
+- changing volume
+- showing or hiding lyrics
+- signing off
+
+Pickers support arrow keys and `j` / `k` navigation, `Enter` to select, and `Esc` to return.
+
+The terminal footer displays the controls available in the current context.
 
 ## Listening Modes
 
@@ -133,12 +142,12 @@ Vibes describe what you're doing rather than prescribing a genre.
 
 Current presets include:
 
-- **Focus**
-- **Discovery**
-- **Energy**
-- **Wind Down**
+- Focus
+- Discovery
+- Energy
+- Wind Down
 
-A vibe becomes the active session intent. DJ MorseCode continues programming within that intent until you select something else or manually tune a station.
+A vibe becomes the active session intent. DJ MorseCode continues programming within that intent until you select something else or manually take control.
 
 ### Moods
 
@@ -168,6 +177,14 @@ The station picker provides direct access to the curated radio catalog.
 
 Manual station selection clears any active vibe, mood, or genre intent. From that point DJ MorseCode stays on the station you chose until you make another selection.
 
+### Source Media
+
+DJ MorseCode can play finite network media without treating it as live radio.
+
+The current implementation includes a manually curated YouTube catalog. YouTube playback is audio-only and participates in the same track enrichment, lyric lookup, observation, and listening-history pipelines used elsewhere in the application.
+
+The source architecture distinguishes media identity and provenance from playback transport, providing a foundation for additional catalogs and providers without coupling the terminal UI to a specific service.
+
 ## Autonomous Sessions
 
 Vibe, mood, and genre selections create an active session intent.
@@ -181,7 +198,7 @@ During an active session, DJ MorseCode:
 5. Rotates to another appropriate station after the configured dwell interval.
 6. Preserves the original listening intent across rotations.
 
-Press `n` to trigger the same rotation behavior manually.
+Manual next behavior uses the same selection machinery as automatic rotation.
 
 ### Stream Recovery
 
@@ -189,21 +206,72 @@ Internet radio is messy.
 
 Streams disappear, stall, redirect, buffer, and occasionally just decide today is not their day.
 
-DJ MorseCode gives an intent-driven station time to establish playback. If the stream remains idle beyond the grace period, that station is excluded for the current session and DJ MorseCode selects another station satisfying the same intent.
+DJ MorseCode treats a requested tune as pending until playback is observed. If the stream remains idle beyond the grace period, that station is excluded for the current programmed session and DJ MorseCode selects another station satisfying the same intent.
+
+Resolved or redirected stream URLs do not erase the identity of a station DJ MorseCode explicitly requested.
 
 Failed tune attempts are not added to listening history.
 
+## Listening History
+
+DJ MorseCode maintains chronological listening history for the current session.
+
+Listening history is derived from successful playback evidence rather than navigation state:
+
+- confirmed radio station tunes become station entries
+- explicitly played source media become media entries
+- revisits are preserved chronologically
+- failed tune attempts are excluded
+
+Radio station back/forward navigation maintains its own browser-style history and cursor. Navigating through previous stations does not redefine listening history.
+
+Raw station, playback, and source-media observations remain available separately for diagnostics.
+
+Track-level history from songs encountered within live radio streams is intentionally deferred until meaningful-listen semantics are defined.
+
 ## Lyrics
 
-DJ MorseCode supports synchronized lyric timelines when lyrics are available.
+DJ MorseCode supports plain and synchronized lyrics when lyrics are available.
 
 The current lyric path includes:
 
 - locally cached lyrics
 - LRCLIB lookup
 - persistent LRCLIB results in the DJ MorseCode cache
+- synchronized timeline cues when available
 
-Lyrics are enrichment, not a playback requirement. Missing lyrics never prevent the music from continuing.
+Lyrics are enrichment, not a playback requirement.
+
+Missing lyrics never prevent the music from continuing.
+
+## Metadata and Enrichment
+
+Playback identity can be enriched independently of the playback source.
+
+Current enrichment and context sources include:
+
+- MusicBrainz recording identity and release metadata
+- Last.fm contextual tags
+- LRCLIB lyrics
+
+Provider results are translated into application-domain models before they reach the UI.
+
+Enrichment is asynchronous and must never block playback.
+
+## Media Sources
+
+DJ MorseCode separates media identity from playback transport.
+
+Current source capabilities include:
+
+- built-in radio stations
+- M3U playlist parsing and station proposals
+- Last.fm similar-track discovery
+- curated YouTube video playback
+
+A source may provide catalog entries, discovery results, provenance, or playable media identity without becoming the playback engine itself.
+
+mpv remains the playback engine.
 
 ## Station Intelligence
 
@@ -217,7 +285,7 @@ Stations carry semantic metadata used by the selection engine:
 
 Matching determines which stations are appropriate for an intent.
 
-Selection then considers session history and failed stations before choosing among eligible candidates.
+Selection then considers navigation history, recent stations, and failed stations before choosing among eligible candidates.
 
 This keeps the decision process deterministic where rules matter and varied where multiple answers are equally valid.
 
@@ -226,42 +294,50 @@ This keeps the decision process deterministic where rules matter and varied wher
 At a high level:
 
 ```text
-                     ┌──────────────┐
-                     │ User Intent  │
-                     │ vibe / mood  │
-                     │ genre        │
-                     └──────┬───────┘
-                            │
-                            ▼
-                       Criteria
-                            │
-                            ▼
-                     Station Match
-                            │
-                            ▼
-                History / Failure Filters
-                            │
-                            ▼
-                    Candidate Selection
-                            │
-                            ▼
-                         Station
-                            │
-                            ▼
-                      Player.Load()
-                            │
-                            ▼
-                           mpv
-                            │
-                            ▼
-                         Audio
+                    User Intent / Selection
+                             |
+                 +-----------+-----------+
+                 |                       |
+                 v                       v
+          Radio Programming        Source Catalogs
+                 |                       |
+                 v                       v
+          Station Selection         Media Identity
+                 |                       |
+                 +-----------+-----------+
+                             |
+                             v
+                           Player
+                             |
+                             v
+                            mpv
+                             |
+                 +-----------+-----------+
+                 |                       |
+                 v                       v
+              Playback              Observations
+                 |                       |
+                 v              +--------+--------+
+             Enrichment          |                 |
+                                 v                 v
+                           Diagnostics       Listening History
 ```
 
-DJ MorseCode owns session intent and programming decisions.
+DJ MorseCode owns intent, source identity, programming decisions, enrichment, observations, and listening history.
 
 mpv owns media transport and audio playback.
 
+The source layer describes what media is and where it came from without prescribing how it is played.
+
+The observation layer records runtime evidence.
+
+The history layer derives meaningful listening chronology from that evidence.
+
+`radio.History` is a separate browser-style navigation model for station back/forward controls.
+
 Bubble Tea owns the terminal interaction model.
+
+See [ARCHITECTURE.md](/docs/ARCHITECTURE.md) for the detailed architecture.
 
 ## Development
 
@@ -297,15 +373,16 @@ Run:
 go run ./cmd/dj
 ```
 
+Useful inspection commands also live under `cmd/` for focused MusicBrainz, Last.fm, and LRCLIB diagnostics.
+
 ## Project Status
 
-DJ MorseCode v1 focuses on the smallest complete listening experience:
+DJ MorseCode currently provides a complete terminal-first listening loop centered on discovery.
 
-> Start the application, describe what you want to hear, and let the DJ handle the rest.
-
-The v1 feature set includes:
+The implemented foundation includes:
 
 - managed mpv lifecycle
+- audio-only playback
 - curated internet radio
 - direct station tuning
 - vibe-based programming
@@ -313,9 +390,18 @@ The v1 feature set includes:
 - genre-based programming
 - persistent session intent
 - history-aware station selection
+- browser-style station back/forward navigation
 - controlled selection variety
 - manual and automatic station rotation
+- redirected-stream reconciliation
 - failed-stream recovery
+- provider-neutral media identity and provenance
+- M3U playlist ingestion and station proposals
+- Last.fm media discovery
+- curated YouTube audio playback
+- MusicBrainz and Last.fm enrichment
+- runtime station, playback, and media observations
+- chronological session listening history
 - synchronized lyric support
 - persistent lyric caching
 - tmux-friendly terminal UI

@@ -862,6 +862,9 @@ func Render(
 	currentCue int,
 	elapsed time.Duration,
 	nowPlaying string,
+	paused bool,
+	muted bool,
+	volume float64,
 	lyricsStatus string,
 	lyricsVisible bool,
 	stationName string,
@@ -994,8 +997,29 @@ func Render(
 		progress,
 	)
 
+	transportMarker := "▶"
+
+	if paused {
+		transportMarker = "Ⅱ"
+	}
+
+	volumeLabel := fmt.Sprintf(
+		"VOL %.0f%%",
+		volume,
+	)
+
+	if muted {
+		volumeLabel = "MUTED"
+	}
+
 	s.WriteString(
-		Artist.Render("▶ " + transport),
+		Artist.Render(
+			transportMarker +
+				" " +
+				transport +
+				"    " +
+				volumeLabel,
+		),
 	)
 	s.WriteString("\n")
 	s.WriteString(

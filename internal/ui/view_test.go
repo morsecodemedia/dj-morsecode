@@ -11,6 +11,103 @@ import (
 	"github.com/morsecodemedia/dj-morsecode/internal/source"
 )
 
+func TestRenderTransportState(
+	t *testing.T,
+) {
+
+	tests := []struct {
+		name string
+
+		paused bool
+		muted  bool
+		volume float64
+
+		wantMarker string
+		wantVolume string
+	}{
+		{
+			name:       "playing",
+			volume:     60,
+			wantMarker: "▶",
+			wantVolume: "VOL 60%",
+		},
+		{
+			name:       "paused",
+			paused:     true,
+			volume:     60,
+			wantMarker: "Ⅱ",
+			wantVolume: "VOL 60%",
+		},
+		{
+			name:       "muted",
+			muted:      true,
+			volume:     60,
+			wantMarker: "▶",
+			wantVolume: "MUTED",
+		},
+	}
+
+	for _, test := range tests {
+
+		t.Run(
+			test.name,
+			func(t *testing.T) {
+
+				view := Render(
+					music.Song{
+						Title:  "Messy",
+						Artist: "Lola Young",
+						Duration: 4*time.Minute +
+							44*time.Second,
+					},
+					metadata.TrackContext{},
+					72,
+					true,
+					0,
+					21*time.Second,
+					"Messy",
+					test.paused,
+					test.muted,
+					test.volume,
+					"SYNCED",
+					false,
+					"Z100",
+					"",
+					"",
+					"",
+				)
+
+				if !strings.Contains(
+					view,
+					test.wantMarker,
+				) {
+
+					t.Errorf(
+						"expected transport marker %q",
+						test.wantMarker,
+					)
+
+				}
+
+				if !strings.Contains(
+					view,
+					test.wantVolume,
+				) {
+
+					t.Errorf(
+						"expected volume state %q",
+						test.wantVolume,
+					)
+
+				}
+
+			},
+		)
+
+	}
+
+}
+
 func renderTestTrack(
 	song music.Song,
 	trackContext metadata.TrackContext,
@@ -20,16 +117,19 @@ func renderTestTrack(
 		song,
 		trackContext,
 		72,
-		true,
+		false,
 		0,
-		30*time.Second,
+		0,
+		"",    // nowPlaying
+		false, // paused
+		false, // muted
+		60,    // volume
+		"Unavailable",
+		false,
 		"",
-		"UNAVAILABLE",
-		true,
 		"",
 		"",
 		"",
-		"c controls • t tune • e enhancements • i info • q sign off",
 	)
 
 }
@@ -175,17 +275,21 @@ func TestRenderHidesLyrics(
 			Lyrics: "Secret lyric",
 		},
 		metadata.TrackContext{},
+
 		72,
-		true,
-		0,
-		0,
-		"Artist - Track",
-		"LRCLIB",
 		false,
-		"Station",
+		0,
+		0,
+		"",    // nowPlaying
+		false, // paused
+		false, // muted
+		60,    // volume
+		"Unavailable",
+		false,
 		"",
 		"",
-		"footer",
+		"",
+		"",
 	)
 
 	if strings.Contains(

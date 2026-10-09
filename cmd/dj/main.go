@@ -811,7 +811,7 @@ func main() {
 		ContextService:     contextService,
 		ObservationService: observationService,
 		ObservationHistory: observationSink,
-		LyricsVisible:      true,
+		LyricsVisible:      false,
 	})
 
 	if _, err := p.Run(); err != nil {

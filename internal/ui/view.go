@@ -83,6 +83,92 @@ func upcomingMarker() string {
 	return "·"
 }
 
+func lyricsPresentation(
+	song music.Song,
+	lyricsStatus string,
+) string {
+
+	if len(song.Timeline) > 0 {
+		return "SYNCED"
+	}
+
+	if strings.TrimSpace(
+		song.Lyrics,
+	) != "" {
+
+		return "AVAILABLE"
+	}
+
+	return strings.ToUpper(
+		strings.TrimSpace(
+			lyricsStatus,
+		),
+	)
+
+}
+
+func renderSyncedLyrics(
+	timeline []music.Cue,
+	current int,
+) string {
+
+	if len(timeline) == 0 {
+		return ""
+	}
+
+	if current < 0 ||
+		current >= len(timeline) {
+
+		current = 0
+	}
+
+	viewport :=
+		BuildViewport(
+			timeline,
+			current,
+		)
+
+	var s strings.Builder
+
+	for i, cue := range viewport {
+
+		if i == 0 {
+
+			line :=
+				cueMarker(
+					cue,
+					false,
+				) +
+					" " +
+					cue.Text
+
+			s.WriteString(
+				CurrentLyric.Render(
+					line,
+				),
+			)
+
+		} else {
+
+			line :=
+				upcomingMarker() +
+					" " +
+					cue.Text
+
+			s.WriteString(
+				UpcomingLyric.Render(
+					line,
+				),
+			)
+
+		}
+
+		s.WriteString("\n")
+	}
+
+	return s.String()
+}
+
 func releaseYear(
 	date string,
 ) int {
@@ -1027,49 +1113,56 @@ func Render(
 	)
 	s.WriteString("\n\n")
 
+	lyricsLabel :=
+		lyricsPresentation(
+			song,
+			lyricsStatus,
+		)
+	s.WriteString("\n")
+
+	s.WriteString(
+		Album.Render(
+			"LYRICS • " +
+				lyricsLabel,
+		),
+	)
+
+	s.WriteString("\n")
+
 	if lyricsVisible {
 
-		s.WriteString(
-			Album.Render(
-				"LYRICS • " + lyricsStatus,
-			),
-		)
-		s.WriteString("\n\n")
-
+		s.WriteString("\n")
 		s.WriteString(Divider(width))
 		s.WriteString("\n\n")
 
-		if strings.TrimSpace(
+		switch {
+
+		case len(song.Timeline) > 0:
+
+			s.WriteString(
+				renderSyncedLyrics(
+					song.Timeline,
+					currentCue,
+				),
+			)
+
+		case strings.TrimSpace(
 			song.Lyrics,
-		) == "" {
+		) != "":
+
+			s.WriteString(
+				Lyric.Render(
+					song.Lyrics,
+				),
+			)
+
+		default:
 
 			s.WriteString(
 				Lyric.Render(
 					"No lyrics available.",
 				),
 			)
-
-		} else {
-
-			lines := strings.Split(
-				song.Lyrics,
-				"\n",
-			)
-
-			for _, line := range lines {
-
-				if strings.TrimSpace(line) == "" {
-					s.WriteString("\n")
-					continue
-				}
-
-				s.WriteString(
-					Lyric.Render(line),
-				)
-
-				s.WriteString("\n")
-
-			}
 
 		}
 

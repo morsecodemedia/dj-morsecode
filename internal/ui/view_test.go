@@ -266,7 +266,7 @@ func TestRenderTrackContextDisplaysReleaseYear(
 
 }
 
-func TestRenderHidesLyrics(
+func TestRenderHidesLyricsBody(
 	t *testing.T,
 ) {
 
@@ -298,17 +298,17 @@ func TestRenderHidesLyrics(
 	) {
 
 		t.Fatal(
-			"expected lyrics to be hidden",
+			"expected lyrics body to be hidden",
 		)
 	}
 
-	if strings.Contains(
+	if !strings.Contains(
 		view,
-		"LYRICS",
+		"LYRICS • AVAILABLE",
 	) {
 
 		t.Fatal(
-			"expected lyrics section to be hidden",
+			"expected lyrics availability to remain visible",
 		)
 	}
 

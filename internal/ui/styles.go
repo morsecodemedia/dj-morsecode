@@ -13,9 +13,7 @@ var (
 
 	Section = lipgloss.NewStyle().
 		Bold(true).
-		Foreground(lipgloss.Color("39")).
-		Width(72).
-		Align(lipgloss.Center)
+		Foreground(lipgloss.Color("39"))
 
 	Subtitle = lipgloss.NewStyle().
 			Italic(true).

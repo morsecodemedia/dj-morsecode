@@ -944,7 +944,84 @@ func RenderIdle(
 const (
 	lyricsColumnMinWidth = 100
 	panelGap             = 3
+
+	compactFooterWidth = 64
+	narrowFooterWidth  = 32
 )
+
+func renderFooter(
+	footer string,
+	width int,
+) string {
+
+	if width < 1 {
+		width = 1
+	}
+
+	const rootFooter = "c controls • t tune • e enhancements • i info • q sign off"
+
+	if footer != rootFooter {
+
+		return Center(
+			Footer.Render(
+				footer,
+			),
+			width,
+		)
+	}
+
+	if width >= compactFooterWidth {
+
+		return Center(
+			Footer.Render(
+				rootFooter,
+			),
+			width,
+		)
+	}
+
+	var lines []string
+
+	if width >= narrowFooterWidth {
+
+		lines = []string{
+			"c controls • t tune",
+			"e enhancements • i info",
+			"q sign off",
+		}
+
+	} else {
+
+		lines = []string{
+			"c controls",
+			"t tune",
+			"e enhancements",
+			"i info",
+			"q sign off",
+		}
+
+	}
+
+	var s strings.Builder
+
+	for i, line := range lines {
+
+		if i > 0 {
+			s.WriteString("\n")
+		}
+
+		s.WriteString(
+			Center(
+				Footer.Render(
+					line,
+				),
+				width,
+			),
+		)
+	}
+
+	return s.String()
+}
 
 func renderLyricsPanel(
 	song music.Song,
@@ -1498,10 +1575,8 @@ func Render(
 	s.WriteString("\n\n")
 
 	s.WriteString(
-		Center(
-			Footer.Render(
-				footer,
-			),
+		renderFooter(
+			footer,
 			width,
 		),
 	)

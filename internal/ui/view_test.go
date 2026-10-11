@@ -882,3 +882,78 @@ func TestRenderNarrowLyricsBelowNowPlaying(
 	}
 
 }
+
+func TestRenderFooterUsesDesignedCompactLayout(
+	t *testing.T,
+) {
+
+	view := renderFooter(
+		"c controls • t tune • e enhancements • i info • q sign off",
+		48,
+	)
+
+	lines := strings.Split(
+		view,
+		"\n",
+	)
+
+	if len(lines) != 3 {
+
+		t.Fatalf(
+			"expected three footer rows, got %d",
+			len(lines),
+		)
+	}
+
+	for _, expected := range []string{
+		"c controls • t tune",
+		"e enhancements • i info",
+		"q sign off",
+	} {
+
+		if !strings.Contains(
+			view,
+			expected,
+		) {
+
+			t.Errorf(
+				"expected compact footer to contain %q",
+				expected,
+			)
+		}
+	}
+}
+
+func TestRenderFooterPreservesContextualFooter(
+	t *testing.T,
+) {
+
+	footer :=
+		"CONTROLS • b previous • n next • p resume • m mute • esc cancel"
+
+	view := renderFooter(
+		footer,
+		120,
+	)
+
+	if !strings.Contains(
+		view,
+		footer,
+	) {
+
+		t.Fatal(
+			"expected contextual footer to remain unchanged",
+		)
+	}
+
+	if strings.Contains(
+		view,
+		"e enhancements • i info",
+	) {
+
+		t.Fatal(
+			"expected contextual footer not to use root footer layout",
+		)
+	}
+
+}

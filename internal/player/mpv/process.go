@@ -12,6 +12,7 @@ import (
 const (
 	processReadyTimeout = 5 * time.Second
 	processReadyPoll    = 50 * time.Millisecond
+	defaultVolume       = 60
 )
 
 type Process struct {
@@ -42,6 +43,7 @@ func (p *Process) Start() error {
 		"--idle=yes",
 		"--no-terminal",
 		"--video=no",
+		"--volume="+fmt.Sprintf("%d", defaultVolume),
 		"--input-ipc-server="+p.socketPath,
 	)
 

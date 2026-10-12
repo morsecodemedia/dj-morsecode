@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/charmbracelet/lipgloss"
 	"github.com/morsecodemedia/dj-morsecode/internal/history"
 	"github.com/morsecodemedia/dj-morsecode/internal/metadata"
 	"github.com/morsecodemedia/dj-morsecode/internal/music"
@@ -81,6 +82,92 @@ func cueMarker(
 
 func upcomingMarker() string {
 	return "·"
+}
+
+func lyricsPresentation(
+	song music.Song,
+	lyricsStatus string,
+) string {
+
+	if len(song.Timeline) > 0 {
+		return "SYNCED"
+	}
+
+	if strings.TrimSpace(
+		song.Lyrics,
+	) != "" {
+
+		return "AVAILABLE"
+	}
+
+	return strings.ToUpper(
+		strings.TrimSpace(
+			lyricsStatus,
+		),
+	)
+
+}
+
+func renderSyncedLyrics(
+	timeline []music.Cue,
+	current int,
+) string {
+
+	if len(timeline) == 0 {
+		return ""
+	}
+
+	if current < 0 ||
+		current >= len(timeline) {
+
+		current = 0
+	}
+
+	viewport :=
+		BuildViewport(
+			timeline,
+			current,
+		)
+
+	var s strings.Builder
+
+	for i, cue := range viewport {
+
+		if i == 0 {
+
+			line :=
+				cueMarker(
+					cue,
+					false,
+				) +
+					" " +
+					cue.Text
+
+			s.WriteString(
+				CurrentLyric.Render(
+					line,
+				),
+			)
+
+		} else {
+
+			line :=
+				upcomingMarker() +
+					" " +
+					cue.Text
+
+			s.WriteString(
+				UpcomingLyric.Render(
+					line,
+				),
+			)
+
+		}
+
+		s.WriteString("\n")
+	}
+
+	return s.String()
 }
 
 func releaseYear(
@@ -766,12 +853,20 @@ func RenderYouTubePicker(
 }
 
 func RenderIdle(
+	items []string,
+	selected int,
 	width int,
 	footer string,
 ) string {
 
 	if width == 0 {
 		width = 72
+	}
+
+	if selected < 0 ||
+		selected >= len(items) {
+
+		selected = 0
 	}
 
 	var s strings.Builder
@@ -809,44 +904,48 @@ func RenderIdle(
 
 	s.WriteString("\n\n")
 
-	s.WriteString(Center(
-		Artist.Render("v  Pick a vibe"),
-		width,
-	))
+	for i, item := range items {
+
+		prefix := "  "
+
+		style := Artist
+
+		if i == selected {
+
+			prefix = "› "
+			style = Title
+
+		}
+
+		s.WriteString(
+			Center(
+				style.Render(
+					prefix+item,
+				),
+				width,
+			),
+		)
+
+		s.WriteString("\n\n")
+	}
+
 	s.WriteString("\n\n")
 
-	s.WriteString(Center(
-		Artist.Render("m  Set a mood"),
-		width,
-	))
-	s.WriteString("\n\n")
-
-	s.WriteString(Center(
-		Artist.Render("g  Choose a genre"),
-		width,
-	))
-	s.WriteString("\n\n")
-
-	s.WriteString(Center(
-		Artist.Render("s  Tune a station"),
-		width,
-	))
-
-	s.WriteString("\n\n")
-
-	s.WriteString(Center(
-		Subtitle.Render("DJ MorseCode is ready when you are."),
-		width,
-	))
+	s.WriteString(
+		Center(
+			Subtitle.Render(
+				"↑/↓ or j/k to move • enter to select",
+			),
+			width,
+		),
+	)
 
 	s.WriteString("\n\n")
 	s.WriteString(Divider(width))
 	s.WriteString("\n\n")
 
-	s.WriteString(Center(
-		Footer.Render(
-			footer,
-		),
+	s.WriteString(renderFooter(
+		footer,
 		width,
 	))
 
@@ -854,106 +953,403 @@ func RenderIdle(
 
 }
 
-func Render(
-	song music.Song,
-	trackContext metadata.TrackContext,
-	width int,
-	onAir bool,
-	currentCue int,
-	elapsed time.Duration,
-	nowPlaying string,
-	lyricsStatus string,
-	lyricsVisible bool,
-	stationName string,
-	intentType string,
-	intentName string,
+const (
+	lyricsColumnMinWidth = 100
+	panelGap             = 3
+
+	compactFooterWidth = 64
+	narrowFooterWidth  = 32
+)
+
+func renderFooter(
 	footer string,
+	width int,
 ) string {
 
-	if width == 0 {
-		width = 72
+	if width < 1 {
+		width = 1
+	}
+
+	const rootFooter = "c controls • t tune • e enhancements • i info • q sign off"
+
+	if footer != rootFooter {
+
+		return Center(
+			Footer.Render(
+				footer,
+			),
+			width,
+		)
+	}
+
+	if width >= compactFooterWidth {
+
+		return Center(
+			Footer.Render(
+				rootFooter,
+			),
+			width,
+		)
+	}
+
+	var lines []string
+
+	if width >= narrowFooterWidth {
+
+		lines = []string{
+			"c controls • t tune",
+			"e enhancements • i info",
+			"q sign off",
+		}
+
+	} else {
+
+		lines = []string{
+			"c controls",
+			"t tune",
+			"e enhancements",
+			"i info",
+			"q sign off",
+		}
+
 	}
 
 	var s strings.Builder
 
-	s.WriteString(Divider(width))
-	s.WriteString("\n\n")
+	for i, line := range lines {
 
-	s.WriteString(Center(
-		Header.Render("DJ MORSECODE"),
-		width,
-	))
+		if i > 0 {
+			s.WriteString("\n")
+		}
+
+		s.WriteString(
+			Center(
+				Footer.Render(
+					line,
+				),
+				width,
+			),
+		)
+	}
+
+	return s.String()
+}
+
+func renderLyricsPanel(
+	song music.Song,
+	currentCue int,
+	lyricsLabel string,
+	width int,
+) string {
+
+	if width < 1 {
+		width = 1
+	}
+
+	var s strings.Builder
+
+	s.WriteString(
+		Section.Render(
+			"LYRICS",
+		),
+	)
 
 	s.WriteString("\n")
 
-	s.WriteString(Center(
-		Subtitle.Render("The DJ that quietly codes with you."),
-		width,
-	))
+	mode := lyricsLabel
+
+	if len(song.Timeline) > 0 {
+		mode = "SYNCED • KARAOKE"
+	}
+
+	s.WriteString(
+		Album.Render(
+			mode,
+		),
+	)
 
 	s.WriteString("\n\n")
 
-	s.WriteString(Divider(width))
-	s.WriteString("\n\n")
+	switch {
+
+	case len(song.Timeline) > 0:
+
+		s.WriteString(
+			renderSyncedLyrics(
+				song.Timeline,
+				currentCue,
+			),
+		)
+
+	case strings.TrimSpace(
+		song.Lyrics,
+	) != "":
+
+		s.WriteString(
+			Lyric.Render(
+				song.Lyrics,
+			),
+		)
+
+	default:
+
+		s.WriteString(
+			Lyric.Render(
+				"No lyrics available.",
+			),
+		)
+
+	}
+
+	return lipgloss.NewStyle().
+		Width(width).
+		Render(
+			s.String(),
+		)
+}
+
+func renderPlaybackHeader(
+	onAir bool,
+	stationName string,
+	intentType string,
+	intentName string,
+	width int,
+) string {
+
+	if width < 1 {
+		width = 1
+	}
 
 	status := "○ ON AIR"
+
 	if onAir {
 		status = "● ON AIR"
 	}
 
-	s.WriteString(Section.Render(status))
-	s.WriteString("\n")
+	left :=
+		Section.Render(
+			status,
+		)
+
+	context := ""
 
 	if stationName != "" {
 
-		s.WriteString(
-			Album.Render("STATION • " + stationName),
-		)
-		s.WriteString("\n")
+		context =
+			"STATION • " +
+				stationName
+
+	} else if intentName != "" {
+
+		context =
+			strings.ToUpper(
+				intentType,
+			) +
+				" • " +
+				intentName
 
 	}
 
-	if intentName != "" {
+	if context == "" {
+		return left
+	}
 
-		label := strings.ToUpper(
+	right :=
+		Album.Render(
+			context,
+		)
+
+	gap :=
+		width -
+			lipgloss.Width(left) -
+			lipgloss.Width(right)
+
+	if gap < 1 {
+
+		return left +
+			"\n" +
+			right
+	}
+
+	return left +
+		strings.Repeat(
+			" ",
+			gap,
+		) +
+		right
+}
+
+func renderTransport(
+	elapsed time.Duration,
+	duration time.Duration,
+	paused bool,
+	muted bool,
+	volume float64,
+	width int,
+) string {
+
+	if width < 1 {
+		width = 1
+	}
+
+	marker := "▶"
+
+	if paused {
+		marker = "Ⅱ"
+	}
+
+	elapsedLabel :=
+		player.FormatDuration(
+			elapsed,
+		)
+
+	durationLabel :=
+		player.FormatDuration(
+			duration,
+		)
+
+	volumeLabel := fmt.Sprintf(
+		"VOL %.0f%%",
+		volume,
+	)
+
+	if muted {
+		volumeLabel = "MUTED"
+	}
+
+	left :=
+		marker +
+			" " +
+			elapsedLabel
+
+	right :=
+		durationLabel +
+			"    " +
+			volumeLabel
+
+	reserved :=
+		lipgloss.Width(left) +
+			lipgloss.Width(right) +
+			4
+
+	barWidth :=
+		width -
+			reserved
+
+	if barWidth < 8 {
+
+		return Artist.Render(
+			left +
+				" / " +
+				right,
+		)
+
+	}
+
+	progress := player.Progress(
+		elapsed.Seconds(),
+		duration.Seconds(),
+	)
+
+	bar := player.ProgressBar(
+		barWidth,
+		progress,
+	)
+
+	return Artist.Render(
+		left +
+			"  " +
+			bar +
+			"  " +
+			right,
+	)
+}
+
+func renderNowPlaying(
+	song music.Song,
+	trackContext metadata.TrackContext,
+	onAir bool,
+	elapsed time.Duration,
+	nowPlaying string,
+	paused bool,
+	muted bool,
+	volume float64,
+	lyricsLabel string,
+	stationName string,
+	intentType string,
+	intentName string,
+	width int,
+) string {
+
+	if width < 1 {
+		width = 1
+	}
+
+	var s strings.Builder
+
+	s.WriteString(
+		renderPlaybackHeader(
+			onAir,
+			stationName,
 			intentType,
+			intentName,
+			width,
+		),
+	)
+
+	s.WriteString("\n\n")
+
+	title :=
+		strings.TrimSpace(
+			song.Title,
 		)
 
-		s.WriteString(
-			Album.Render(
-				label + " • " + intentName,
-			),
-		)
-		s.WriteString("\n")
+	if title == "" {
 
+		title =
+			strings.TrimSpace(
+				nowPlaying,
+			)
 	}
+
+	s.WriteString(
+		Title.Render(
+			"♫ " + title,
+		),
+	)
 
 	s.WriteString("\n")
 
-	title := nowPlaying
+	if strings.TrimSpace(
+		song.Artist,
+	) != "" {
 
-	if title == "" {
-		title = song.Title
+		s.WriteString(
+			Artist.Render(
+				"  " +
+					song.Artist,
+			),
+		)
+
+		s.WriteString("\n")
 	}
-
-	s.WriteString(Title.Render("♫ " + title))
-	s.WriteString("\n\n")
-
-	s.WriteString(Artist.Render(song.Artist))
-	s.WriteString("\n\n")
 
 	albumLine := song.Album
 
 	if trackContext.Release.Title != "" {
-		albumLine = trackContext.Release.Title
+
+		albumLine =
+			trackContext.Release.Title
 	}
 
 	year := song.Year
 
 	if trackContext.Release.Date != "" {
-		year = releaseYear(
-			trackContext.Release.Date,
-		)
+
+		year =
+			releaseYear(
+				trackContext.Release.Date,
+			)
 	}
 
 	if year != 0 {
@@ -972,99 +1368,230 @@ func Render(
 	if albumLine != "" {
 
 		s.WriteString(
-			Album.Render(albumLine),
+			Album.Render(
+				"  " +
+					albumLine,
+			),
 		)
 
 		s.WriteString("\n")
-
 	}
 
-	transport :=
-		player.FormatDuration(elapsed) +
-			" / " +
-			player.FormatDuration(song.Duration)
-
-	progress := player.Progress(
-		elapsed.Seconds(),
-		song.Duration.Seconds(),
-	)
-
-	bar := player.ProgressBar(
-		24,
-		progress,
-	)
-
-	s.WriteString(
-		Artist.Render("▶ " + transport),
-	)
 	s.WriteString("\n")
+
 	s.WriteString(
-		Album.Render(bar),
+		renderTransport(
+			elapsed,
+			song.Duration,
+			paused,
+			muted,
+			volume,
+			width,
+		),
 	)
+
 	s.WriteString("\n\n")
 
-	if lyricsVisible {
+	s.WriteString(
+		Album.Render(
+			"LYRICS • " +
+				lyricsLabel,
+		),
+	)
+
+	return lipgloss.NewStyle().
+		Width(width).
+		Render(
+			s.String(),
+		)
+}
+
+func Render(
+	song music.Song,
+	trackContext metadata.TrackContext,
+	width int,
+	onAir bool,
+	currentCue int,
+	elapsed time.Duration,
+	nowPlaying string,
+	paused bool,
+	muted bool,
+	volume float64,
+	lyricsStatus string,
+	lyricsVisible bool,
+	stationName string,
+	intentType string,
+	intentName string,
+	footer string,
+) string {
+
+	if width == 0 {
+		width = 72
+	}
+
+	var s strings.Builder
+
+	s.WriteString(
+		Divider(
+			width,
+		),
+	)
+
+	s.WriteString("\n\n")
+
+	s.WriteString(
+		Center(
+			Header.Render(
+				"DJ MORSECODE",
+			),
+			width,
+		),
+	)
+
+	s.WriteString("\n")
+
+	s.WriteString(
+		Center(
+			Subtitle.Render(
+				"The DJ that quietly codes with you.",
+			),
+			width,
+		),
+	)
+
+	s.WriteString("\n\n")
+
+	s.WriteString(
+		Divider(
+			width,
+		),
+	)
+
+	s.WriteString("\n\n")
+
+	lyricsLabel :=
+		lyricsPresentation(
+			song,
+			lyricsStatus,
+		)
+
+	if lyricsVisible &&
+		width >= lyricsColumnMinWidth {
+
+		contentWidth :=
+			width -
+				panelGap
+
+		nowPlayingWidth :=
+			contentWidth *
+				58 /
+				100
+
+		lyricsWidth :=
+			contentWidth -
+				nowPlayingWidth
+
+		left :=
+			renderNowPlaying(
+				song,
+				trackContext,
+				onAir,
+				elapsed,
+				nowPlaying,
+				paused,
+				muted,
+				volume,
+				lyricsLabel,
+				stationName,
+				intentType,
+				intentName,
+				nowPlayingWidth,
+			)
+
+		right :=
+			renderLyricsPanel(
+				song,
+				currentCue,
+				lyricsLabel,
+				lyricsWidth,
+			)
+
+		content :=
+			lipgloss.JoinHorizontal(
+				lipgloss.Top,
+				left,
+				strings.Repeat(
+					" ",
+					panelGap,
+				),
+				right,
+			)
 
 		s.WriteString(
-			Album.Render(
-				"LYRICS • " + lyricsStatus,
+			content,
+		)
+
+	} else {
+
+		s.WriteString(
+			renderNowPlaying(
+				song,
+				trackContext,
+				onAir,
+				elapsed,
+				nowPlaying,
+				paused,
+				muted,
+				volume,
+				lyricsLabel,
+				stationName,
+				intentType,
+				intentName,
+				width,
 			),
 		)
-		s.WriteString("\n\n")
 
-		s.WriteString(Divider(width))
-		s.WriteString("\n\n")
+		if lyricsVisible {
 
-		if strings.TrimSpace(
-			song.Lyrics,
-		) == "" {
+			s.WriteString("\n\n")
 
 			s.WriteString(
-				Lyric.Render(
-					"No lyrics available.",
+				Divider(
+					width,
 				),
 			)
 
-		} else {
+			s.WriteString("\n\n")
 
-			lines := strings.Split(
-				song.Lyrics,
-				"\n",
+			s.WriteString(
+				renderLyricsPanel(
+					song,
+					currentCue,
+					lyricsLabel,
+					width,
+				),
 			)
-
-			for _, line := range lines {
-
-				if strings.TrimSpace(line) == "" {
-					s.WriteString("\n")
-					continue
-				}
-
-				s.WriteString(
-					Lyric.Render(line),
-				)
-
-				s.WriteString("\n")
-
-			}
 
 		}
 
-		s.WriteString("\n")
-		s.WriteString(Divider(width))
-		s.WriteString("\n\n")
-
 	}
 
-	s.WriteString("\n")
-	s.WriteString(Divider(width))
 	s.WriteString("\n\n")
 
-	s.WriteString(Center(
-		Footer.Render(
-			footer,
+	s.WriteString(
+		Divider(
+			width,
 		),
-		width,
-	))
+	)
+
+	s.WriteString("\n\n")
+
+	s.WriteString(
+		renderFooter(
+			footer,
+			width,
+		),
+	)
 
 	return s.String()
 }

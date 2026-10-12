@@ -853,12 +853,20 @@ func RenderYouTubePicker(
 }
 
 func RenderIdle(
+	items []string,
+	selected int,
 	width int,
 	footer string,
 ) string {
 
 	if width == 0 {
 		width = 72
+	}
+
+	if selected < 0 ||
+		selected >= len(items) {
+
+		selected = 0
 	}
 
 	var s strings.Builder
@@ -896,44 +904,48 @@ func RenderIdle(
 
 	s.WriteString("\n\n")
 
-	s.WriteString(Center(
-		Artist.Render("v  Pick a vibe"),
-		width,
-	))
+	for i, item := range items {
+
+		prefix := "  "
+
+		style := Artist
+
+		if i == selected {
+
+			prefix = "› "
+			style = Title
+
+		}
+
+		s.WriteString(
+			Center(
+				style.Render(
+					prefix+item,
+				),
+				width,
+			),
+		)
+
+		s.WriteString("\n\n")
+	}
+
 	s.WriteString("\n\n")
 
-	s.WriteString(Center(
-		Artist.Render("m  Set a mood"),
-		width,
-	))
-	s.WriteString("\n\n")
-
-	s.WriteString(Center(
-		Artist.Render("g  Choose a genre"),
-		width,
-	))
-	s.WriteString("\n\n")
-
-	s.WriteString(Center(
-		Artist.Render("s  Tune a station"),
-		width,
-	))
-
-	s.WriteString("\n\n")
-
-	s.WriteString(Center(
-		Subtitle.Render("DJ MorseCode is ready when you are."),
-		width,
-	))
+	s.WriteString(
+		Center(
+			Subtitle.Render(
+				"↑/↓ or j/k to move • enter to select",
+			),
+			width,
+		),
+	)
 
 	s.WriteString("\n\n")
 	s.WriteString(Divider(width))
 	s.WriteString("\n\n")
 
-	s.WriteString(Center(
-		Footer.Render(
-			footer,
-		),
+	s.WriteString(renderFooter(
+		footer,
 		width,
 	))
 

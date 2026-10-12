@@ -957,3 +957,76 @@ func TestRenderFooterPreservesContextualFooter(
 	}
 
 }
+
+func TestRenderIdleSelection(
+	t *testing.T,
+) {
+
+	view := RenderIdle(
+		[]string{
+			"Pick a vibe",
+			"Set a mood",
+			"Choose a genre",
+		},
+		1,
+		72,
+		"",
+	)
+
+	if !strings.Contains(
+		view,
+		"› Set a mood",
+	) {
+
+		t.Fatal(
+			"expected selected home item",
+		)
+	}
+
+	if strings.Contains(
+		view,
+		"› Pick a vibe",
+	) {
+
+		t.Fatal(
+			"expected only selected item to have cursor",
+		)
+	}
+
+	if !strings.Contains(
+		view,
+		"↑/↓ or j/k to move • enter to select",
+	) {
+
+		t.Fatal(
+			"expected home navigation help",
+		)
+	}
+
+}
+
+func TestRenderIdleNormalizesSelection(
+	t *testing.T,
+) {
+
+	view := RenderIdle(
+		[]string{
+			"Pick a vibe",
+			"Set a mood",
+		},
+		99,
+		72,
+		"",
+	)
+
+	if !strings.Contains(
+		view,
+		"› Pick a vibe",
+	) {
+
+		t.Fatal(
+			"expected invalid selection to fall back to first item",
+		)
+	}
+
+}

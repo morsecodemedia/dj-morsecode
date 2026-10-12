@@ -419,6 +419,50 @@ func (m model) updateKey(
 		return m, nil
 	}
 
+	if m.homeActive() &&
+		m.CommandMode == controls.ModeNone {
+
+		switch key {
+
+		case "up", "k":
+
+			if m.HomeIndex > 0 {
+				m.HomeIndex--
+			}
+
+			return m, nil
+
+		case "down", "j":
+
+			if m.HomeIndex <
+				len(homeItems)-1 {
+
+				m.HomeIndex++
+			}
+
+			return m, nil
+
+		case "enter":
+
+			if len(homeItems) == 0 {
+				return m, nil
+			}
+
+			if m.HomeIndex < 0 ||
+				m.HomeIndex >= len(homeItems) {
+
+				m.HomeIndex = 0
+			}
+
+			return m.applyControlAction(
+				homeItems[m.HomeIndex].
+					Action,
+			)
+
+		}
+
+	}
+
 	action := controls.Resolve(
 		m.CommandMode,
 		key,

@@ -78,6 +78,7 @@ type model struct {
 	ObservationService     *observation.Service
 	ObservationHistory     *observation.MemorySink
 	CommandMode            controls.Mode
+	HomeIndex              int
 	StationPickerOpen      bool
 	ListeningHistoryOpen   bool
 	ObservationHistoryOpen bool
@@ -637,15 +638,14 @@ func (m model) View() string {
 
 	}
 
-	if m.NowPlaying == "" &&
-		m.CurrentStationID == "" &&
-		m.PendingStationID == "" {
+	if m.homeActive() {
 
 		return ui.RenderIdle(
+			homeLabels(),
+			m.HomeIndex,
 			m.Width,
 			m.footerText(),
 		)
-
 	}
 
 	stationName := ""
